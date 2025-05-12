@@ -53,14 +53,20 @@
             text-align: center;
             margin-top: 10px;
         }
+        #selected-seats {
+            text-align: center;
+            font-size: 16px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
     <h1>LVG Kino - Бронирование билетов</h1>
-    <h2>Выберите место</h2>
+    <h2>Выберите места</h2>
     <div class="seating-chart">
         <canvas id="seatingCanvas" width="500" height="300"></canvas>
     </div>
+    <div id="selected-seats">Выбрано мест: 0 (0 RUB)</div>
     <form id="booking-form">
         <label for="movie">Фильм:</label>
         <select id="movie" required>
@@ -78,7 +84,7 @@
         <input type="text" id="name" required>
         <label for="email">Email:</label>
         <input type="email" id="email" required>
-        <button type="button" id="pay-button">Оплатить (100 RUB)</button>
+        <button type="button" id="pay-button">Оплатить (0 RUB)</button>
     </form>
     <div id="payment-message"></div>
 
@@ -92,7 +98,7 @@
         const seatHeight = 30;
         const seatPadding = 10;
         let seats = Array(rows).fill().map(() => Array(cols).fill('free')); // free, selected, booked
-        let selectedSeat = null;
+        let selectedSeats = [];
 
         // Функция для получения ключа сеанса
         function getSessionKey() {
@@ -108,7 +114,8 @@
             savedSeats.forEach(seat => {
                 seats[seat.row][seat.col] = 'booked';
             });
-            selectedSeat = null;
+            selectedSeats = [];
+            updateSelectedSeats();
             drawSeats();
         }
 
@@ -128,6 +135,14 @@
             }
         }
 
+        // Обновление информации о выбранных местах
+        function updateSelectedSeats() {
+            const count = selectedSeats.length;
+            const total = count * 100; // 100 RUB за место
+            document.getElementById('selected-seats').textContent = `Выбрано мест: ${count} (${total} RUB)`;
+            document.getElementById('pay-button').textContent = `Оплатить (${total} RUB)`;
+        }
+
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -138,13 +153,14 @@
                     const seatY = row * (seatHeight + seatPadding) + 50;
                     if (x >= seatX && x <= seatX + seatWidth && y >= seatY && y <= seatY + seatHeight) {
                         if (seats[row][col] === 'free') {
-                            if (selectedSeat) {
-                                seats[selectedSeat.row][selectedSeat.col] = 'free';
-                            }
                             seats[row][col] = 'selected';
-                            selectedSeat = { row, col };
-                            drawSeats();
+                            selectedSeats.push({ row, col });
+                        } else if (seats[row][col] === 'selected') {
+                            seats[row][col] = 'free';
+                            selectedSeats = selectedSeats.filter(s => s.row !== row || s.col !== col);
                         }
+                        updateSelectedSeats();
+                        drawSeats();
                     }
                 }
             }
@@ -157,8 +173,8 @@
         // Обработка оплаты (заглушка)
         const payButton = document.getElementById('pay-button');
         payButton.addEventListener('click', async () => {
-            if (!selectedSeat) {
-                alert('Пожалуйста, выберите место!');
+            if (selectedSeats.length === 0) {
+                alert('Пожалуйста, выберите хотя бы одно место!');
                 return;
             }
             const movie = document.getElementById('movie').value;
@@ -174,18 +190,23 @@
                         time,
                         name,
                         email,
-                        seat: selectedSeat
+                        seats: selectedSeats,
+                        amount: selectedSeats.length * 100 // 100 RUB за место
                     })
                 });
                 const data = await response.json();
                 document.getElementById('payment-message').textContent = data.message;
                 // Имитация успешной оплаты для тестирования
-                seats[selectedSeat.row][selectedSeat.col] = 'booked';
+                selectedSeats.forEach(seat => {
+                    seats[seat.row][seat.col] = 'booked';
+                });
                 localStorage.setItem(getSessionKey(), JSON.stringify(
-                    JSON.parse(localStorage.getItem(getSessionKey()) || '[]').concat(selectedSeat)
+                    JSON.parse(localStorage.getItem(getSessionKey()) || '[]').concat(selectedSeats)
                 ));
+                selectedSeats = [];
+                updateSelectedSeats();
                 drawSeats();
-                document.getElementById('payment-message').textContent = 'Оплата пока не подключена, но место забронировано для теста!';
+                document.getElementById('payment-message').textContent = 'Оплата пока не подключена, но места забронированы для теста!';
             } catch (error) {
                 document.getElementById('payment-message').textContent = 'Ошибка: ' + error.message;
             }
