@@ -126,6 +126,38 @@
             padding: 10px;
             border-radius: 5px;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .modal-content button {
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .modal-content button:hover {
+            background-color: #218838;
+        }
         @media (max-width: 768px) {
             .seating-container {
                 flex-direction: column;
@@ -151,7 +183,7 @@
     <div class="seating-container">
         <div class="seating-chart">
             <h2>Выберите места</h2>
-            <canvas id="seatingCanvas" width="500" height="300"></canvas>
+            <canvas id="seatingCanvas" width="700" height="600"></canvas>
             <div id="seat-message"></div>
             <div id="selected-seats">Выбрано мест: 0 (0 RUB)</div>
         </div>
@@ -180,24 +212,145 @@
     </form>
     <div id="payment-message"></div>
 
+    <!-- Модальное окно для выбора количества человек -->
+    <div id="seat-modal" class="modal">
+        <div class="modal-content">
+            <h3>Выберите количество человек</h3>
+            <div id="seat-options"></div>
+            <button id="cancel-seat">Отмена</button>
+        </div>
+    </div>
+
     <script>
-        // Canvas для рассадки
+        // Canvas для схемы зала
         const canvas = document.getElementById('seatingCanvas');
         const ctx = canvas.getContext('2d');
-        const rows = 5;
-        const cols = 10;
         const seatSize = 20;
         const seatPadding = 20;
-        let seats = Array(rows).fill().map(() => Array(cols).fill('free')); // free, selected, booked
         let selectedSeats = [];
         let showAll = false;
 
-        // Функция для рисования кружочка
-        function drawCircle(x, y, size, color) {
-            ctx.fillStyle = color;
+        // Описание мест
+        const seats = {
+            poufs: Array(1).fill().map(() => Array(8).fill('free')), // 0-й ряд: 8 пуфов
+            sofas: [
+                Array(5).fill('free'), // 1-й ряд: 5 диванов
+                Array(6).fill('free'), // 2-й ряд: 6 диванов
+                Array(6).fill('free'), // 3-й ряд: 6 диванов
+                Array(4).fill('free'), // 4-й ряд: 4 дивана
+                Array(3).fill('free')  // 5-й ряд: 3 дивана
+            ],
+            cornerSofas: [
+                Array(2).fill('free'), // 4-й ряд: 2 угловых дивана
+                Array(2).fill('free')  // 5-й ряд: 2 угловых дивана
+            ]
+        };
+
+        // Количество человек для каждого забронированного дивана/углового дивана
+        const seatCounts = {};
+
+        // Рисование пуфа (кружок)
+        function drawPouf(x, y, status) {
+            ctx.fillStyle = status === 'free' ? '#00cc00' : status === 'selected' ? 'yellow' : 'red';
             ctx.beginPath();
-            ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+            ctx.arc(x, y, seatSize / 2, 0, Math.PI * 2);
             ctx.fill();
+        }
+
+        // Рисование дивана (прямоугольник)
+        function drawSofa(x, y, width, height, status) {
+            ctx.fillStyle = status === 'free' ? '#00cc00' : status === 'selected' ? 'yellow' : 'red';
+            ctx.fillRect(x, y, width, height);
+        }
+
+        // Рисование углового дивана (залитая прямоугольная область)
+        function drawCornerSofa(x, y, width, height, status) {
+            ctx.fillStyle = status === 'free' ? '#00cc00' : status === 'selected' ? 'yellow' : 'red';
+            ctx.fillRect(x, y, width, height);
+        }
+
+        // Рисование всей схемы
+        function drawSeats() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Экран
+            ctx.fillStyle = 'gray';
+            ctx.fillRect(50, 20, 600, 20);
+            ctx.fillStyle = 'white';
+            ctx.font = '14px Arial';
+            ctx.fillText('Экран', 320, 32);
+
+            // 0-й ряд: 8 пуфов
+            for (let col = 0; col < 8; col++) {
+                const x = col * (seatSize + seatPadding) + 100;
+                const y = 70;
+                drawPouf(x, y, seats.poufs[0][col]);
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.fillText(`P${col + 1}`, x - 10, y + 5);
+            }
+
+            // 1-й ряд: 5 диванов
+            for (let col = 0; col < 5; col++) {
+                const x = col * 100 + 100;
+                const y = 120;
+                drawSofa(x, y, 80, 30, seats.sofas[0][col]);
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.fillText(`S1-${col + 1}`, x + 25, y + 20);
+            }
+
+            // 2-й ряд: 6 диванов (шахматный порядок)
+            for (let col = 0; col < 6; col++) {
+                const x = col * 90 + 80;
+                const y = 180;
+                drawSofa(x, y, 80, 30, seats.sofas[1][col]);
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.fillText(`S2-${col + 1}`, x + 25, y + 20);
+            }
+
+            // 3-й ряд: 6 диванов (шахматный порядок)
+            for (let col = 0; col < 6; col++) {
+                const x = col * 90 + 100;
+                const y = 240;
+                drawSofa(x, y, 80, 30, seats.sofas[2][col]);
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.fillText(`S3-${col + 1}`, x + 25, y + 20);
+            }
+
+            // 4-й ряд: 4 дивана + 2 угловых
+            for (let col = 0; col < 4; col++) {
+                const x = col * 90 + 160;
+                const y = 300;
+                drawSofa(x, y, 80, 30, seats.sofas[3][col]);
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.fillText(`S4-${col + 1}`, x + 25, y + 20);
+            }
+            // Угловые диваны (4-й ряд)
+            drawCornerSofa(50, 300, 100, 40, seats.cornerSofas[0][0]);
+            ctx.fillStyle = 'black';
+            ctx.fillText('CS4-1', 80, 325);
+            drawCornerSofa(550, 300, 100, 40, seats.cornerSofas[0][1]);
+            ctx.fillText('CS4-2', 580, 325);
+
+            // 5-й ряд: 3 дивана + 2 угловых (шахматный порядок)
+            for (let col = 0; col < 3; col++) {
+                const x = col * 100 + 200;
+                const y = 360;
+                drawSofa(x, y, 80, 30, seats.sofas[4][col]);
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.fillText(`S5-${col + 1}`, x + 25, y + 20);
+            }
+            // Угловые диваны (5-й ряд)
+            drawCornerSofa(50, 360, 100, 40, seats.cornerSofas[1][0]);
+            ctx.fillStyle = 'black';
+            ctx.fillText('CS5-1', 80, 385);
+            drawCornerSofa(550, 360, 100, 40, seats.cornerSofas[1][1]);
+            ctx.fillText('CS5-2', 580, 385);
         }
 
         // Функция для получения ключа сеанса
@@ -208,12 +361,28 @@
             return `seats_${movie}_${date}_${time}`;
         }
 
-        // Загрузка сохранённых броней для текущего сеанса
+        // Загрузка сохранённых броней
         function loadSeats() {
-            seats = Array(rows).fill().map(() => Array(cols).fill('free'));
+            seats.poufs = Array(1).fill().map(() => Array(8).fill('free'));
+            seats.sofas = [
+                Array(5).fill('free'),
+                Array(6).fill('free'),
+                Array(6).fill('free'),
+                Array(4).fill('free'),
+                Array(3).fill('free')
+            ];
+            seats.cornerSofas = [Array(2).fill('free'), Array(2).fill('free')];
             const savedSeats = JSON.parse(localStorage.getItem(getSessionKey()) || '[]');
             savedSeats.forEach(seat => {
-                seats[seat.row][seat.col] = 'booked';
+                if (seat.type === 'pouf') {
+                    seats.poufs[0][seat.col] = 'booked';
+                } else if (seat.type === 'sofa') {
+                    seats.sofas[seat.row][seat.col] = 'booked';
+                    seatCounts[`${seat.type}_${seat.row}_${seat.col}`] = seat.count;
+                } else if (seat.type === 'cornerSofa') {
+                    seats.cornerSofas[seat.row][seat.col] = 'booked';
+                    seatCounts[`${seat.type}_${seat.row}_${seat.col}`] = seat.count;
+                }
             });
             selectedSeats = [];
             updateSelectedSeats();
@@ -221,29 +390,56 @@
             updateActiveSession();
         }
 
-        function drawSeats() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let row = 0; row < rows; row++) {
-                for (let col = 0; col < cols; col++) {
-                    const x = col * (seatSize + seatPadding) + 70;
-                    const y = row * (seatSize + seatPadding) + 70;
-                    const color = seats[row][col] === 'free' ? '#00cc00' :
-                                  seats[row][col] === 'selected' ? 'yellow' : 'red';
-                    drawCircle(x, y, seatSize, color);
-                    ctx.fillStyle = 'black';
-                    ctx.font = '10px Arial';
-                    ctx.fillText(`${row + 1}-${col + 1}`, x - 10, y + 5);
-                }
-            }
-        }
-
         // Обновление информации о выбранных местах
         function updateSelectedSeats() {
-            const count = selectedSeats.length;
-            const total = count * 100; // 100 RUB за место
-            document.getElementById('selected-seats').textContent = `Выбрано мест: ${count} (${total} RUB)`;
-            document.getElementById('pay-button').textContent = `Оплатить (${total} RUB)`;
+            let totalSeats = 0;
+            let totalPrice = 0;
+            selectedSeats.forEach(seat => {
+                const key = `${seat.type}_${seat.row}_${seat.col}`;
+                const count = seatCounts[key] || 0;
+                if (seat.type === 'pouf') {
+                    totalSeats += 1;
+                    totalPrice += 450;
+                } else if (seat.type === 'sofa') {
+                    totalSeats += count;
+                    totalPrice += count * 450;
+                } else if (seat.type === 'cornerSofa') {
+                    totalSeats += count;
+                    totalPrice += count * 450;
+                }
+            });
+            document.getElementById('selected-seats').textContent = `Выбрано мест: ${totalSeats} (${totalPrice} RUB)`;
+            document.getElementById('pay-button').textContent = `Оплатить (${totalPrice} RUB)`;
             document.getElementById('seat-message').textContent = '';
+        }
+
+        // Показ модального окна для выбора количества человек
+        function showSeatModal(type, row, col, min, max) {
+            const modal = document.getElementById('seat-modal');
+            const options = document.getElementById('seat-options');
+            options.innerHTML = '';
+            for (let i = min; i <= max; i++) {
+                const button = document.createElement('button');
+                button.textContent = `${i} человек`;
+                button.onclick = () => {
+                    const key = `${type}_${row}_${col}`;
+                    seatCounts[key] = i;
+                    if (type === 'sofa') {
+                        seats.sofas[row][col] = 'selected';
+                    } else if (type === 'cornerSofa') {
+                        seats.cornerSofas[row][col] = 'selected';
+                    }
+                    selectedSeats.push({ type, row, col });
+                    modal.style.display = 'none';
+                    updateSelectedSeats();
+                    drawSeats();
+                };
+                options.appendChild(button);
+            }
+            document.getElementById('cancel-seat').onclick = () => {
+                modal.style.display = 'none';
+            };
+            modal.style.display = 'block';
         }
 
         // Загрузка фильмов и времени
@@ -296,7 +492,7 @@
             const showAllButton = document.getElementById('show-all-sessions');
             sessionsList.innerHTML = '';
             const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
-            const now = new Date('2025-05-12T00:00:00'); // Текущая дата
+            const now = new Date('2025-05-12T00:00:00');
             let filteredSessions = sessions
                 .map(session => ({
                     ...session,
@@ -305,7 +501,7 @@
                 .filter(session => session.dateTime >= now)
                 .sort((a, b) => a.dateTime - b.dateTime);
             if (!showAll) {
-                filteredSessions = filteredSessions.slice(0, 3); // Только 3 ближайших
+                filteredSessions = filteredSessions.slice(0, 3);
                 showAllButton.textContent = 'Показать все';
             } else {
                 showAllButton.textContent = 'Скрыть';
@@ -366,6 +562,7 @@
         movieSelect.addEventListener('change', updateTimes);
         timeSelect.addEventListener('change', loadSeats);
 
+        // Обработка клика по местам
         canvas.addEventListener('click', (e) => {
             const date = dateInput.value;
             const movie = movieSelect.value;
@@ -377,22 +574,163 @@
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            for (let row = 0; row < rows; row++) {
-                for (let col = 0; col < cols; col++) {
-                    const seatX = col * (seatSize + seatPadding) + 70;
-                    const seatY = row * (seatSize + seatPadding) + 70;
-                    if (Math.hypot(x - seatX, y - seatY) < seatSize / 2) {
-                        if (seats[row][col] === 'free') {
-                            seats[row][col] = 'selected';
-                            selectedSeats.push({ row, col });
-                        } else if (seats[row][col] === 'selected') {
-                            seats[row][col] = 'free';
-                            selectedSeats = selectedSeats.filter(s => s.row !== row || s.col !== col);
-                        }
+
+            // 0-й ряд: пуфы
+            for (let col = 0; col < 8; col++) {
+                const seatX = col * (seatSize + seatPadding) + 100;
+                const seatY = 70;
+                if (Math.hypot(x - seatX, y - seatY) < seatSize / 2) {
+                    if (seats.poufs[0][col] === 'free') {
+                        seats.poufs[0][col] = 'selected';
+                        selectedSeats.push({ type: 'pouf', row: 0, col });
+                    } else if (seats.poufs[0][col] === 'selected') {
+                        seats.poufs[0][col] = 'free';
+                        selectedSeats = selectedSeats.filter(s => !(s.type === 'pouf' && s.row === 0 && s.col === col));
+                    }
+                    updateSelectedSeats();
+                    drawSeats();
+                    return;
+                }
+            }
+
+            // 1-й ряд: 5 диванов
+            for (let col = 0; col < 5; col++) {
+                const seatX = col * 100 + 100;
+                const seatY = 120;
+                if (x >= seatX && x <= seatX + 80 && y >= seatY && y <= seatY + 30) {
+                    if (seats.sofas[0][col] === 'free') {
+                        showSeatModal('sofa', 0, col, 2, 3);
+                    } else if (seats.sofas[0][col] === 'selected') {
+                        seats.sofas[0][col] = 'free';
+                        delete seatCounts[`sofa_0_${col}`];
+                        selectedSeats = selectedSeats.filter(s => !(s.type === 'sofa' && s.row === 0 && s.col === col));
                         updateSelectedSeats();
                         drawSeats();
                     }
+                    return;
                 }
+            }
+
+            // 2-й ряд: 6 диванов
+            for (let col = 0; col < 6; col++) {
+                const seatX = col * 90 + 80;
+                const seatY = 180;
+                if (x >= seatX && x <= seatX + 80 && y >= seatY && y <= seatY + 30) {
+                    if (seats.sofas[1][col] === 'free') {
+                        showSeatModal('sofa', 1, col, 2, 3);
+                    } else if (seats.sofas[1][col] === 'selected') {
+                        seats.sofas[1][col] = 'free';
+                        delete seatCounts[`sofa_1_${col}`];
+                        selectedSeats = selectedSeats.filter(s => !(s.type === 'sofa' && s.row === 1 && s.col === col));
+                        updateSelectedSeats();
+                        drawSeats();
+                    }
+                    return;
+                }
+            }
+
+            // 3-й ряд: 6 диванов
+            for (let col = 0; col < 6; col++) {
+                const seatX = col * 90 + 100;
+                const seatY = 240;
+                if (x >= seatX && x <= seatX + 80 && y >= seatY && y <= seatY + 30) {
+                    if (seats.sofas[2][col] === 'free') {
+                        showSeatModal('sofa', 2, col, 2, 3);
+                    } else if (seats.sofas[2][col] === 'selected') {
+                        seats.sofas[2][col] = 'free';
+                        delete seatCounts[`sofa_2_${col}`];
+                        selectedSeats = selectedSeats.filter(s => !(s.type === 'sofa' && s.row === 2 && s.col === col));
+                        updateSelectedSeats();
+                        drawSeats();
+                    }
+                    return;
+                }
+            }
+
+            // 4-й ряд: 4 дивана + 2 угловых
+            for (let col = 0; col < 4; col++) {
+                const seatX = col * 90 + 160;
+                const seatY = 300;
+                if (x >= seatX && x <= seatX + 80 && y >= seatY && y <= seatY + 30) {
+                    if (seats.sofas[3][col] === 'free') {
+                        showSeatModal('sofa', 3, col, 2, 3);
+                    } else if (seats.sofas[3][col] === 'selected') {
+                        seats.sofas[3][col] = 'free';
+                        delete seatCounts[`sofa_3_${col}`];
+                        selectedSeats = selectedSeats.filter(s => !(s.type === 'sofa' && s.row === 3 && s.col === col));
+                        updateSelectedSeats();
+                        drawSeats();
+                    }
+                    return;
+                }
+            }
+            // Угловые диваны (4-й ряд)
+            if (x >= 50 && x <= 150 && y >= 300 && y <= 340) {
+                if (seats.cornerSofas[0][0] === 'free') {
+                    showSeatModal('cornerSofa', 0, 0, 4, 6);
+                } else if (seats.cornerSofas[0][0] === 'selected') {
+                    seats.cornerSofas[0][0] = 'free';
+                    delete seatCounts[`cornerSofa_0_0`];
+                    selectedSeats = selectedSeats.filter(s => !(s.type === 'cornerSofa' && s.row === 0 && s.col === 0));
+                    updateSelectedSeats();
+                    drawSeats();
+                }
+                return;
+            }
+            if (x >= 550 && x <= 650 && y >= 300 && y <= 340) {
+                if (seats.cornerSofas[0][1] === 'free') {
+                    showSeatModal('cornerSofa', 0, 1, 4, 6);
+                } else if (seats.cornerSofas[0][1] === 'selected') {
+                    seats.cornerSofas[0][1] = 'free';
+                    delete seatCounts[`cornerSofa_0_1`];
+                    selectedSeats = selectedSeats.filter(s => !(s.type === 'cornerSofa' && s.row === 0 && s.col === 1));
+                    updateSelectedSeats();
+                    drawSeats();
+                }
+                return;
+            }
+
+            // 5-й ряд: 3 дивана + 2 угловых
+            for (let col = 0; col < 3; col++) {
+                const seatX = col * 100 + 200;
+                const seatY = 360;
+                if (x >= seatX && x <= seatX + 80 && y >= seatY && y <= seatY + 30) {
+                    if (seats.sofas[4][col] === 'free') {
+                        showSeatModal('sofa', 4, col, 2, 3);
+                    } else if (seats.sofas[4][col] === 'selected') {
+                        seats.sofas[4][col] = 'free';
+                        delete seatCounts[`sofa_4_${col}`];
+                        selectedSeats = selectedSeats.filter(s => !(s.type === 'sofa' && s.row === 4 && s.col === col));
+                        updateSelectedSeats();
+                        drawSeats();
+                    }
+                    return;
+                }
+            }
+            // Угловые диваны (5-й ряд)
+            if (x >= 50 && x <= 150 && y >= 360 && y <= 400) {
+                if (seats.cornerSofas[1][0] === 'free') {
+                    showSeatModal('cornerSofa', 1, 0, 4, 6);
+                } else if (seats.cornerSofas[1][0] === 'selected') {
+                    seats.cornerSofas[1][0] = 'free';
+                    delete seatCounts[`cornerSofa_1_0`];
+                    selectedSeats = selectedSeats.filter(s => !(s.type === 'cornerSofa' && s.row === 1 && s.col === 0));
+                    updateSelectedSeats();
+                    drawSeats();
+                }
+                return;
+            }
+            if (x >= 550 && x <= 650 && y >= 360 && y <= 400) {
+                if (seats.cornerSofas[1][1] === 'free') {
+                    showSeatModal('cornerSofa', 1, 1, 4, 6);
+                } else if (seats.cornerSofas[1][1] === 'selected') {
+                    seats.cornerSofas[1][1] = 'free';
+                    delete seatCounts[`cornerSofa_1_1`];
+                    selectedSeats = selectedSeats.filter(s => !(s.type === 'cornerSofa' && s.row === 1 && s.col === 1));
+                    updateSelectedSeats();
+                    drawSeats();
+                }
+                return;
             }
         });
 
@@ -408,6 +746,10 @@
             const time = document.getElementById('time').value;
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
+            const seatsToSave = selectedSeats.map(seat => ({
+                ...seat,
+                count: seatCounts[`${seat.type}_${seat.row}_${seat.col}`] || 1
+            }));
             try {
                 const response = await fetch('/.netlify/functions/create-payment', {
                     method: 'POST',
@@ -418,20 +760,30 @@
                         time,
                         name,
                         email,
-                        seats: selectedSeats,
-                        amount: selectedSeats.length * 100 // 100 RUB за место
+                        seats: seatsToSave,
+                        amount: selectedSeats.reduce((total, seat) => {
+                            const count = seatCounts[`${seat.type}_${seat.row}_${seat.col}`] || 1;
+                            return total + (count * 450);
+                        }, 0)
                     })
                 });
                 const data = await response.json();
                 document.getElementById('payment-message').textContent = data.message;
-                // Имитация успешной оплаты для тестирования
+                // Имитация успешной оплаты
                 selectedSeats.forEach(seat => {
-                    seats[seat.row][seat.col] = 'booked';
+                    if (seat.type === 'pouf') {
+                        seats.poufs[0][seat.col] = 'booked';
+                    } else if (seat.type === 'sofa') {
+                        seats.sofas[seat.row][seat.col] = 'booked';
+                    } else if (seat.type === 'cornerSofa') {
+                        seats.cornerSofas[seat.row][seat.col] = 'booked';
+                    }
                 });
                 localStorage.setItem(getSessionKey(), JSON.stringify(
-                    JSON.parse(localStorage.getItem(getSessionKey()) || '[]').concat(selectedSeats)
+                    JSON.parse(localStorage.getItem(getSessionKey()) || '[]').concat(seatsToSave)
                 ));
                 selectedSeats = [];
+                Object.keys(seatCounts).forEach(key => delete seatCounts[key]);
                 updateSelectedSeats();
                 drawSeats();
                 document.getElementById('payment-message').textContent = 'Оплата пока не подключена, но места забронированы для теста!';
