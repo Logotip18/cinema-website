@@ -1,129 +1,181 @@
 <!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Кинотеатр "Звезда"</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.20.6/babel.min.js"></script>
-</head>
-<body class="bg-gray-100">
-  <div id="root"></div>
-  <script type="text/babel">
-    function App() {
-      const [selectedMovie, setSelectedMovie] = React.useState('');
-      const [selectedTime, setSelectedTime] = React.useState('');
-      const [name, setName] = React.useState('');
-      const [email, setEmail] = React.useState('');
-      const [message, setMessage] = React.useState('');
+     <html lang="ru">
+     <head>
+         <meta charset="UTF-8">
+         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+         <title>LVG Kino - Бронирование билетов</title>
+         <style>
+             body {
+                 font-family: Arial, sans-serif;
+                 max-width: 800px;
+                 margin: 0 auto;
+                 padding: 20px;
+                 background-color: #f4f4f4;
+             }
+             h1, h2 {
+                 text-align: center;
+                 color: #333;
+             }
+             .seating-chart {
+                 margin: 20px 0;
+                 text-align: center;
+             }
+             canvas {
+                 border: 1px solid #ccc;
+             }
+             form {
+                 display: flex;
+                 flex-direction: column;
+                 gap: 10px;
+                 max-width: 400px;
+                 margin: 0 auto;
+             }
+             label {
+                 font-weight: bold;
+             }
+             select, input, button {
+                 padding: 10px;
+                 font-size: 16px;
+                 border: 1px solid #ccc;
+                 border-radius: 5px;
+             }
+             button {
+                 background-color: #28a745;
+                 color: white;
+                 cursor: pointer;
+                 border: none;
+             }
+             button:hover {
+                 background-color: #218838;
+             }
+             #payment-message {
+                 color: #333;
+                 text-align: center;
+                 margin-top: 10px;
+             }
+         </style>
+     </head>
+     <body>
+         <h1>LVG Kino - Бронирование билетов</h1>
+         <h2>Выберите место</h2>
+         <div class="seating-chart">
+             <canvas id="seatingCanvas" width="500" height="300"></canvas>
+         </div>
+         <form id="booking-form">
+             <label for="movie">Фильм:</label>
+             <select id="movie" required>
+                 <option value="Дюна 2">Дюна 2</option>
+                 <option value="Оппенгеймер">Оппенгеймер</option>
+                 <option value="Барби">Барби</option>
+             </select>
+             <label for="time">Время:</label>
+             <select id="time" required>
+                 <option value="18:00">18:00</option>
+                 <option value="20:00">20:00</option>
+                 <option value="22:00">22:00</option>
+             </select>
+             <label for="name">Имя:</label>
+             <input type="text" id="name" required>
+             <label for="email">Email:</label>
+             <input type="email" id="email" required>
+             <button type="button" id="pay-button">Оплатить (100 RUB)</button>
+         </form>
+         <div id="payment-message"></div>
 
-      const movies = [
-        { title: "Дюна 2", times: ["12:00", "15:00", "18:00"] },
-        { title: "Оппенгеймер", times: ["13:00", "16:00", "19:00"] },
-        { title: "Барби", times: ["11:00", "14:00", "17:00"] },
-      ];
+         <script>
+             // Canvas для рассадки
+             const canvas = document.getElementById('seatingCanvas');
+             const ctx = canvas.getContext('2d');
+             const rows = 5;
+             const cols = 10;
+             const seatWidth = 40;
+             const seatHeight = 30;
+             const seatPadding = 10;
+             let seats = Array(rows).fill().map(() => Array(cols).fill('free')); // free, selected, booked
+             let selectedSeat = null;
 
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        if (selectedMovie && selectedTime && name && email) {
-          setMessage(`Билет забронирован! Фильм: ${selectedMovie}, Время: ${selectedTime}, Имя: ${name}, Email: ${email}`);
-          setSelectedMovie('');
-          setSelectedTime('');
-          setName('');
-          setEmail('');
-        } else {
-          setMessage('Пожалуйста, заполните все поля.');
-        }
-      };
+             // Загрузка сохранённых броней
+             const savedSeats = JSON.parse(localStorage.getItem('seats') || '[]');
+             savedSeats.forEach(seat => {
+                 seats[seat.row][seat.col] = 'booked';
+             });
 
-      return (
-        <div className="max-w-4xl mx-auto p-4">
-          <h1 className="text-4xl font-bold text-center mb-8">Кинотеатр "Звезда"</h1>
-          
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Афиша</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {movies.map((movie) => (
-                <div key={movie.title} className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-xl font-bold">{movie.title}</h3>
-                  <p>Время сеансов: {movie.times.join(", ")}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+             function drawSeats() {
+                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                 for (let row = 0; row < rows; row++) {
+                     for (let col = 0; col < cols; col++) {
+                         const x = col * (seatWidth + seatPadding) + 50;
+                         const y = row * (seatHeight + seatPadding) + 50;
+                         ctx.fillStyle = seats[row][col] === 'free' ? 'green' :
+                                         seats[row][col] === 'selected' ? 'yellow' : 'red';
+                         ctx.fillRect(x, y, seatWidth, seatHeight);
+                         ctx.fillStyle = 'white';
+                         ctx.font = '12px Arial';
+                         ctx.fillText(`${row + 1}-${col + 1}`, x + 10, y + 20);
+                     }
+                 }
+             }
 
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-2xl font-semibold mb-4">Бронирование билетов</h2>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-gray-700">Выберите фильм</label>
-                <select
-                  value={selectedMovie}
-                  onChange={(e) => setSelectedMovie(e.target.value)}
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="">-- Выберите фильм --</option>
-                  {movies.map((movie) => (
-                    <option key={movie.title} value={movie.title}>{movie.title}</option>
-                  ))}
-                </select>
-              </div>
+             canvas.addEventListener('click', (e) => {
+                 const rect = canvas.getBoundingClientRect();
+                 const x = e.clientX - rect.left;
+                 const y = e.clientY - rect.top;
+                 for (let row = 0; row < rows; row++) {
+                     for (let col = 0; col < cols; col++) {
+                         const seatX = col * (seatWidth + seatPadding) + 50;
+                         const seatY = row * (seatHeight + seatPadding) + 50;
+                         if (x >= seatX && x <= seatX + seatWidth && y >= seatY && y <= seatY + seatHeight) {
+                             if (seats[row][col] === 'free') {
+                                 if (selectedSeat) {
+                                     seats[selectedSeat.row][selectedSeat.col] = 'free';
+                                 }
+                                 seats[row][col] = 'selected';
+                                 selectedSeat = { row, col };
+                                 drawSeats();
+                             }
+                         }
+                     }
+                 }
+             });
 
-              <div className="mb-4">
-                <label className="block text-gray-700">Выберите время</label>
-                <select
-                  value={selectedTime}
-                  onChange={(e) => setSelectedTime(e.target.value)}
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="">-- Выберите время --</option>
-                  {selectedMovie &&
-                    movies
-                      .find((movie) => movie.title === selectedMovie)
-                      ?.times.map((time) => (
-                        <option key={time} value={time}>{time}</option>
-                      ))}
-                </select>
-              </div>
+             // Обработка оплаты (заглушка)
+             const payButton = document.getElementById('pay-button');
+             payButton.addEventListener('click', async () => {
+                 if (!selectedSeat) {
+                     alert('Пожалуйста, выберите место!');
+                     return;
+                 }
+                 const movie = document.getElementById('movie').value;
+                 const time = document.getElementById('time').value;
+                 const name = document.getElementById('name').value;
+                 const email = document.getElementById('email').value;
+                 try {
+                     const response = await fetch('/.netlify/functions/create-payment', {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({
+                             movie,
+                             time,
+                             name,
+                             email,
+                             seat: selectedSeat
+                         })
+                     });
+                     const data = await response.json();
+                     document.getElementById('payment-message').textContent = data.message;
+                     // Имитация успешной оплаты для тестирования
+                     seats[selectedSeat.row][selectedSeat.col] = 'booked';
+                     localStorage.setItem('seats', JSON.stringify(
+                         JSON.parse(localStorage.getItem('seats') || '[]').concat(selectedSeat)
+                     ));
+                     drawSeats();
+                     document.getElementById('payment-message').textContent = 'Оплата пока не подключена, но место забронировано для теста!';
+                 } catch (error) {
+                     document.getElementById('payment-message').textContent = 'Ошибка: ' + error.message;
+                 }
+             });
 
-              <div className="mb-4">
-                <label className="block text-gray-700">Ваше имя</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  placeholder="Иван Иванов"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-gray-700">Ваш email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  placeholder="example@email.com"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-              >
-                Забронировать
-              </button>
-            </form>
-            {message && <p className="mt-4 text-center">{message}</p>}
-          </div>
-        </div>
-      );
-    }
-
-    ReactDOM.render(<App />, document.getElementById('root'));
-  </script>
-</body>
-</html>
+             drawSeats();
+         </script>
+     </body>
+     </html>
