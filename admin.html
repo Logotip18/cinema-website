@@ -63,69 +63,24 @@
             border: 1px solid #ccc;
             border-radius: 5px;
         }
-        .auth-form {
-            text-align: center;
-            margin-top: 50px;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 10px;
-        }
-        .auth-form.hidden {
-            display: none;
-        }
-        .content.hidden {
-            display: none;
-        }
     </style>
 </head>
 <body>
-    <div id="auth-form" class="auth-form">
-        <h2>Вход в админ-панель</h2>
-        <form id="login-form">
-            <label for="login">Логин:</label>
-            <input type="text" id="login" required>
-            <label for="password">Пароль:</label>
-            <input type="password" id="password" required>
-            <button type="submit">Войти</button>
-        </form>
-        <div id="auth-message" style="color: red; margin-top: 10px;"></div>
-    </div>
-    <div id="content" class="content hidden">
-        <h1>LVG Kino - Админ-панель</h1>
-        <h2>Добавить сеанс</h2>
-        <form id="session-form">
-            <label for="movie">Фильм:</label>
-            <input type="text" id="movie" required>
-            <label for="date">Дата:</label>
-            <input type="date" id="date" required>
-            <label for="time">Время:</label>
-            <input type="time" id="time" required>
-            <button type="submit">Добавить</button>
-        </form>
-        <h2>Сеансы и брони</h2>
-        <ul id="sessions"></ul>
-    </div>
+    <h1>LVG Kino - Админ-панель</h1>
+    <h2>Добавить сеанс</h2>
+    <form id="session-form">
+        <label for="movie">Фильм:</label>
+        <input type="text" id="movie" required>
+        <label for="date">Дата:</label>
+        <input type="date" id="date" required>
+        <label for="time">Время:</label>
+        <input type="time" id="time" required>
+        <button type="submit">Добавить</button>
+    </form>
+    <h2>Сеансы и брони</h2>
+    <ul id="sessions"></ul>
 
     <script>
-        // Авторизация
-        const loginForm = document.getElementById('login-form');
-        const authForm = document.getElementById('auth-form');
-        const content = document.getElementById('content');
-        const authMessage = document.getElementById('auth-message');
-
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const login = document.getElementById('login').value;
-            const password = document.getElementById('password').value;
-            if (login === 'admin' && password === 'password') {
-                authForm.classList.add('hidden');
-                content.classList.remove('hidden');
-                renderSessions();
-            } else {
-                authMessage.textContent = 'Неверный логин или пароль';
-            }
-        });
-
         // Загрузка сеансов
         let sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
         const sessionsList = document.getElementById('sessions');
@@ -138,7 +93,7 @@
                 const li = document.createElement('li');
                 li.innerHTML = `
                     ${session.movie} | ${session.date} | ${session.time}
-                    <br>Брони: ${bookings.length ? bookings.map(s => `Место ${s.row + 1}-${s.col + 1}`).join(', ') : 'Нет'}
+                    <br>Брони: ${bookings.length ? bookings.map(s => `${s.type === 'pouf' ? `Пуф P${s.col + 1}` : s.type === 'sofa' ? `Диван S${s.row + 1}-${s.col + 1} (${s.count} чел.)` : `Угловой CS${s.row + 4}-${s.col + 1} (${s.count} чел.)`}`).join(', ') : 'Нет'}
                     <br><button class="delete" data-index="${index}">Удалить</button>
                 `;
                 sessionsList.appendChild(li);
