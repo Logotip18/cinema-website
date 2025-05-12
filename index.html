@@ -112,10 +112,10 @@
         function drawSeats() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = 'gray';
-            ctx.fillRect(50, 20, 600, 20);
+            ctx.fillRect(50, 20, canvas.width - 100, 20);
             ctx.fillStyle = 'white';
             ctx.font = '12px Arial';
-            ctx.fillText('Экран', 320, 32);
+            ctx.fillText('Экран', (canvas.width - 40) / 2, 32);
 
             const poufStartX = (canvas.width - (8 * seatSize + 7 * seatPadding)) / 2;
             for (let col = 0; col < 8; col++) {
@@ -257,7 +257,7 @@
             timeSelect.innerHTML = '<option value="">Выберите время</option>';
             if (date) {
                 const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
-                console.log('Sessions from localStorage:', sessions); // Отладка
+                console.log('Loaded sessions:', sessions); // Отладка
                 const movies = [...new Set(sessions.filter(s => s.date === date).map(s => s.movie))];
                 movies.forEach(movie => {
                     const option = document.createElement('option');
@@ -306,6 +306,7 @@
             const showAllButton = document.getElementById('show-all-sessions');
             sessionsList.innerHTML = '';
             const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+            console.log('Rendering sessions:', sessions); // Отладка
             if (sessions.length === 0) {
                 const li = document.createElement('li');
                 li.textContent = 'Сеансы не добавлены. Добавьте их через админ-панель.';
