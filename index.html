@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
             background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center/cover;
@@ -17,18 +17,52 @@
             color: #fff;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
-        .seating-chart {
+        .seating-container {
+            display: flex;
+            gap: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
             margin: 20px 0;
+        }
+        .seating-chart {
+            flex: 1;
             text-align: center;
         }
         canvas {
             border: 1px solid #ccc;
             animation: fadeIn 1s ease-in;
-            background-color: rgba(255, 255, 255, 0.9); /* Полупрозрачный белый фон */
+            background-color: #fff;
         }
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
+        }
+        .sessions-list {
+            flex: 1;
+            max-width: 300px;
+        }
+        .sessions-list h3 {
+            margin: 0 0 10px;
+            color: #333;
+        }
+        .sessions-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sessions-list li {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .sessions-list li:hover {
+            background-color: #f0f0f0;
+        }
+        .sessions-list li.active {
+            background-color: #d4edda;
+            border-color: #28a745;
         }
         form {
             display: flex;
@@ -83,12 +117,18 @@
 </head>
 <body>
     <h1>LVG Kino - Бронирование билетов</h1>
-    <h2>Выберите места</h2>
-    <div class="seating-chart">
-        <canvas id="seatingCanvas" width="500" height="300"></canvas>
+    <div class="seating-container">
+        <div class="seating-chart">
+            <h2>Выберите места</h2>
+            <canvas id="seatingCanvas" width="500" height="300"></canvas>
+            <div id="seat-message"></div>
+            <div id="selected-seats">Выбрано мест: 0 (0 RUB)</div>
+        </div>
+        <div class="sessions-list">
+            <h3>Ближайшие сеансы</h3>
+            <ul id="sessions"></ul>
+        </div>
     </div>
-    <div id="seat-message"></div>
-    <div id="selected-seats">Выбрано мест: 0 (0 RUB)</div>
     <form id="booking-form">
         <label for="date">Дата:</label>
         <input type="date" id="date" required>
@@ -145,6 +185,7 @@
             selectedSeats = [];
             updateSelectedSeats();
             drawSeats();
+            updateActiveSession();
         }
 
         function drawSeats() {
@@ -193,6 +234,7 @@
                     movieSelect.appendChild(option);
                 });
             }
+            renderSessionsList();
             loadSeats();
         }
 
@@ -211,8 +253,62 @@
                     timeSelect.appendChild(option);
                 });
             }
+            renderSessionsList();
             loadSeats();
         }
+
+        // Рендеринг списка ближайших сеансов
+        function renderSessionsList() {
+            const sessionsList = document.getElementById('sessions');
+            sessionsList.innerHTML = '';
+            const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+            const now = new Date('2025-05-12T00:00:00'); // Текущая дата
+            const upcoming = sessions
+                .map(session => ({
+                    ...session,
+                    dateTime: new Date(`${session.date}T${session.time}`)
+                }))
+                .filter(session => session.dateTime >= now)
+                .sort((a, b) => a.dateTime - b.dateTime)
+                .slice(0, 3); // Только 3 ближайших
+            upcoming.forEach(session => {
+                const li = document.createElement('li');
+                li.dataset.movie = session.movie;
+                li.dataset.date = session.date;
+                li.dataset.time = session.time;
+                li.textContent = `${session.movie} | ${session.date} | ${session.time}`;
+                sessionsList.appendChild(li);
+            });
+            updateActiveSession();
+        }
+
+        // Обновление активного сеанса в списке
+        function updateActiveSession() {
+            const sessionsList = document.getElementById('sessions');
+            const movie = movieSelect.value;
+            const date = dateInput.value;
+            const time = timeSelect.value;
+            Array.from(sessionsList.querySelectorAll('li')).forEach(li => {
+                if (li.dataset.movie === movie && li.dataset.date === date && li.dataset.time === time) {
+                    li.classList.add('active');
+                } else {
+                    li.classList.remove('active');
+                }
+            });
+        }
+
+        // Обработка клика по сеансу
+        document.getElementById('sessions').addEventListener('click', (e) => {
+            const li = e.target.closest('li[data-movie]');
+            if (li) {
+                dateInput.value = li.dataset.date;
+                updateMovies();
+                movieSelect.value = li.dataset.movie;
+                updateTimes();
+                timeSelect.value = li.dataset.time;
+                loadSeats();
+            }
+        });
 
         dateInput.addEventListener('change', updateMovies);
         movieSelect.addEventListener('change', updateTimes);
@@ -293,6 +389,7 @@
         });
 
         // Инициализация
+        renderSessionsList();
         loadSeats();
     </script>
 </body>
