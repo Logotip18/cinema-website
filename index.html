@@ -22,6 +22,11 @@
         }
         canvas {
             border: 1px solid #ccc;
+            animation: fadeIn 1s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         form {
             display: flex;
@@ -74,6 +79,8 @@
             <option value="Оппенгеймер">Оппенгеймер</option>
             <option value="Барби">Барби</option>
         </select>
+        <label for="date">Дата:</label>
+        <input type="date" id="date" required>
         <label for="time">Время:</label>
         <select id="time" required>
             <option value="18:00">18:00</option>
@@ -94,17 +101,35 @@
         const ctx = canvas.getContext('2d');
         const rows = 5;
         const cols = 10;
-        const seatWidth = 40;
-        const seatHeight = 30;
-        const seatPadding = 10;
+        const seatSize = 30;
+        const seatPadding = 20;
         let seats = Array(rows).fill().map(() => Array(cols).fill('free')); // free, selected, booked
         let selectedSeats = [];
+
+        // Функция для рисования морской звезды
+        function drawStar(x, y, size, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = Math.PI / 2.5 * i - Math.PI / 2;
+                const outerX = x + Math.cos(angle) * size;
+                const outerY = y + Math.sin(angle) * size;
+                const innerAngle = angle + Math.PI / 5;
+                const innerX = x + Math.cos(innerAngle) * (size / 2);
+                const innerY = y + Math.sin(innerAngle) * (size / 2);
+                ctx.lineTo(outerX, outerY);
+                ctx.lineTo(innerX, innerY);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
 
         // Функция для получения ключа сеанса
         function getSessionKey() {
             const movie = document.getElementById('movie').value;
+            const date = document.getElementById('date').value;
             const time = document.getElementById('time').value;
-            return `seats_${movie}_${time}`;
+            return `seats_${movie}_${date}_${time}`;
         }
 
         // Загрузка сохранённых броней для текущего сеанса
@@ -123,14 +148,14 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
-                    const x = col * (seatWidth + seatPadding) + 50;
-                    const y = row * (seatHeight + seatPadding) + 50;
-                    ctx.fillStyle = seats[row][col] === 'free' ? 'green' :
-                                    seats[row][col] === 'selected' ? 'yellow' : 'red';
-                    ctx.fillRect(x, y, seatWidth, seatHeight);
+                    const x = col * (seatSize + seatPadding) + 70;
+                    const y = row * (seatSize + seatPadding) + 70;
+                    const color = seats[row][col] === 'free' ? 'green' :
+                                  seats[row][col] === 'selected' ? 'yellow' : 'red';
+                    drawStar(x, y, seatSize / 2, color);
                     ctx.fillStyle = 'white';
-                    ctx.font = '12px Arial';
-                    ctx.fillText(`${row + 1}-${col + 1}`, x + 10, y + 20);
+                    ctx.font = '10px Arial';
+                    ctx.fillText(`${row + 1}-${col + 1}`, x - 10, y + 5);
                 }
             }
         }
@@ -149,9 +174,9 @@
             const y = e.clientY - rect.top;
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
-                    const seatX = col * (seatWidth + seatPadding) + 50;
-                    const seatY = row * (seatHeight + seatPadding) + 50;
-                    if (x >= seatX && x <= seatX + seatWidth && y >= seatY && y <= seatY + seatHeight) {
+                    const seatX = col * (seatSize + seatPadding) + 70;
+                    const seatY = row * (seatSize + seatPadding) + 70;
+                    if (Math.hypot(x - seatX, y - seatY) < seatSize / 2) {
                         if (seats[row][col] === 'free') {
                             seats[row][col] = 'selected';
                             selectedSeats.push({ row, col });
@@ -166,8 +191,9 @@
             }
         });
 
-        // Обновление карты при смене фильма или времени
+        // Обновление карты при смене фильма, даты или времени
         document.getElementById('movie').addEventListener('change', loadSeats);
+        document.getElementById('date').addEventListener('change', loadSeats);
         document.getElementById('time').addEventListener('change', loadSeats);
 
         // Обработка оплаты (заглушка)
@@ -178,6 +204,7 @@
                 return;
             }
             const movie = document.getElementById('movie').value;
+            const date = document.getElementById('date').value;
             const time = document.getElementById('time').value;
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
@@ -187,6 +214,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         movie,
+                        date,
                         time,
                         name,
                         email,

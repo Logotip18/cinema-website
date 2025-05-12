@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LVG Kino - Админ-панель</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #e6f3fa;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+        label {
+            font-weight: bold;
+        }
+        input, select, button {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        button.delete {
+            background-color: #dc3545;
+        }
+        button.delete:hover {
+            background-color: #c82333;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>LVG Kino - Админ-панель</h1>
+    <h2>Добавить сеанс</h2>
+    <form id="session-form">
+        <label for="movie">Фильм:</label>
+        <input type="text" id="movie" required>
+        <label for="date">Дата:</label>
+        <input type="date" id="date" required>
+        <label for="time">Время:</label>
+        <input type="time" id="time" required>
+        <button type="submit">Добавить</button>
+    </form>
+    <h2>Сеансы и брони</h2>
+    <ul id="sessions"></ul>
+
+    <script>
+        // Загрузка сеансов
+        let sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+        const sessionsList = document.getElementById('sessions');
+
+        function renderSessions() {
+            sessionsList.innerHTML = '';
+            sessions.forEach((session, index) => {
+                const key = `seats_${session.movie}_${session.date}_${session.time}`;
+                const bookings = JSON.parse(localStorage.getItem(key) || '[]');
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    ${session.movie} | ${session.date} | ${session.time}
+                    <br>Брони: ${bookings.length ? bookings.map(s => `Место ${s.row + 1}-${s.col + 1}`).join(', ') : 'Нет'}
+                    <br><button class="delete" data-index="${index}">Удалить</button>
+                `;
+                sessionsList.appendChild(li);
+            });
+        }
+
+        // Добавление сеанса
+        document.getElementById('session-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const movie = document.getElementById('movie').value;
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            sessions.push({ movie, date, time });
+            localStorage.setItem('sessions', JSON.stringify(sessions));
+            document.getElementById('session-form').reset();
+            renderSessions();
+        });
+
+        // Удаление сеанса
+        sessionsList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete')) {
+                const index = e.target.dataset.index;
+                const session = sessions[index];
+                const key = `seats_${session.movie}_${session.date}_${session.time}`;
+                localStorage.removeItem(key);
+                sessions.splice(index, 1);
+                localStorage.setItem('sessions', JSON.stringify(sessions));
+                renderSessions();
+            }
+        });
+
+        // Инициализация
+        renderSessions();
+    </script>
+</body>
+</html>
