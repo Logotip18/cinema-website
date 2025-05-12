@@ -79,7 +79,7 @@
     <script>
         const canvas = document.getElementById('seatingCanvas');
         const ctx = canvas.getContext('2d');
-        const seatSize = 20; // Увеличиваем размер для пуфов
+        const seatSize = 20;
         const seatPadding = 15;
         let selectedSeats = [];
         let showAll = false;
@@ -95,7 +95,7 @@
         function drawPouf(x, y, status) {
             ctx.fillStyle = status === 'free' ? '#00cccc' : status === 'selected' ? 'yellow' : 'red';
             ctx.beginPath();
-            ctx.arc(x, y, seatSize / 2, 0, Math.PI * 2); // Радиус теперь 10px
+            ctx.arc(x, y, seatSize / 2, 0, Math.PI * 2);
             ctx.fill();
         }
 
@@ -124,7 +124,7 @@
                 drawPouf(x, y, seats.poufs[0][col]);
                 ctx.fillStyle = 'black';
                 ctx.font = '8px Arial';
-                ctx.fillText(`0-${col + 1}`, x - 10, y + 5); // Нумерация: 0-1, 0-2...
+                ctx.fillText(`0-${col + 1}`, x - 10, y + 5);
             }
 
             const sofa1StartX = (700 - (5 * 60 + 4 * seatPadding)) / 2;
@@ -133,7 +133,7 @@
                 const y = 120;
                 drawSofa(x, y, 60, 25, seats.sofas[0][col]);
                 ctx.fillStyle = 'black';
-                ctx.fillText(`1-${col + 1}`, x + 20, y + 15); // Нумерация: 1-1, 1-2...
+                ctx.fillText(`1-${col + 1}`, x + 20, y + 15);
             }
 
             const sofa2StartX = (700 - (6 * 60 + 5 * seatPadding)) / 2;
@@ -142,7 +142,7 @@
                 const y = 180;
                 drawSofa(x, y, 60, 25, seats.sofas[1][col]);
                 ctx.fillStyle = 'black';
-                ctx.fillText(`2-${col + 1}`, x + 20, y + 15); // Нумерация: 2-1, 2-2...
+                ctx.fillText(`2-${col + 1}`, x + 20, y + 15);
             }
 
             const sofa3StartX = (700 - (6 * 60 + 5 * seatPadding)) / 2;
@@ -151,7 +151,7 @@
                 const y = 240;
                 drawSofa(x, y, 60, 25, seats.sofas[2][col]);
                 ctx.fillStyle = 'black';
-                ctx.fillText(`3-${col + 1}`, x + 20, y + 15); // Нумерация: 3-1, 3-2...
+                ctx.fillText(`3-${col + 1}`, x + 20, y + 15);
             }
 
             const sofa4StartX = (700 - (4 * 60 + 3 * seatPadding)) / 2;
@@ -160,14 +160,14 @@
                 const y = 300;
                 drawSofa(x, y, 60, 25, seats.sofas[3][col]);
                 ctx.fillStyle = 'black';
-                ctx.fillText(`4-${col + 1}`, x + 20, y + 15); // Нумерация: 4-1, 4-2...
+                ctx.fillText(`4-${col + 1}`, x + 20, y + 15);
             }
             drawCornerSofa(50, 300, 80, 30, seats.cornerSofas[0][0]);
             ctx.fillStyle = 'white';
-            ctx.fillText('4-5', 75, 320); // Нумерация: 4-5
+            ctx.fillText('4-5', 75, 320);
             drawCornerSofa(570, 300, 80, 30, seats.cornerSofas[0][1]);
             ctx.fillStyle = 'white';
-            ctx.fillText('4-6', 595, 320); // Нумерация: 4-6
+            ctx.fillText('4-6', 595, 320);
 
             const sofa5StartX = (700 - (3 * 60 + 2 * seatPadding)) / 2;
             for (let col = 0; col < 3; col++) {
@@ -175,14 +175,14 @@
                 const y = 360;
                 drawSofa(x, y, 60, 25, seats.sofas[4][col]);
                 ctx.fillStyle = 'black';
-                ctx.fillText(`5-${col + 1}`, x + 20, y + 15); // Нумерация: 5-1, 5-2...
+                ctx.fillText(`5-${col + 1}`, x + 20, y + 15);
             }
             drawCornerSofa(50, 360, 80, 30, seats.cornerSofas[1][0]);
             ctx.fillStyle = 'white';
-            ctx.fillText('5-4', 75, 380); // Нумерация: 5-4
+            ctx.fillText('5-4', 75, 380);
             drawCornerSofa(570, 360, 80, 30, seats.cornerSofas[1][1]);
             ctx.fillStyle = 'white';
-            ctx.fillText('5-5', 595, 380); // Нумерация: 5-5
+            ctx.fillText('5-5', 595, 380);
         }
 
         function getSessionKey() {
@@ -264,11 +264,11 @@
                     option.textContent = movie;
                     movieSelect.appendChild(option);
                 });
-                renderSessionsList(); // Принудительно обновляем список сеансов
                 if (movies.length > 0) {
                     movieSelect.value = movies[0];
                     updateTimes();
                 }
+                renderSessionsList(); // Обновляем список сеансов при выборе даты
             }
             loadSeats();
         }
@@ -292,7 +292,7 @@
                     loadSeats();
                 }
             }
-            renderSessionsList(); // Принудительно обновляем список сеансов
+            renderSessionsList(); // Обновляем список сеансов при выборе фильма
             loadSeats();
         }
 
@@ -311,7 +311,7 @@
                 return sessionDate >= today || (sessionDate.getTime() === today.getTime() && session.dateTime >= now);
             }).sort((a, b) => a.dateTime - b.dateTime);
             if (!showAll) {
-                filteredSessions = filteredSessions.slice(0, 5); // Показываем 5 сеансов вместо 3
+                filteredSessions = filteredSessions.slice(0, 5);
                 showAllButton.textContent = 'Показать все';
             } else {
                 showAllButton.textContent = 'Скрыть';
