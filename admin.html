@@ -153,6 +153,7 @@
             const time = document.getElementById('time').value;
             sessions.push({ movie, date, time });
             localStorage.setItem('sessions', JSON.stringify(sessions));
+            localStorage.setItem('sessions_updated', Date.now());
             document.getElementById('session-form').reset();
             renderSessions();
         });
@@ -166,9 +167,13 @@
                 localStorage.removeItem(key);
                 sessions.splice(index, 1);
                 localStorage.setItem('sessions', JSON.stringify(sessions));
+                localStorage.setItem('sessions_updated', Date.now());
                 renderSessions();
             }
         });
+
+        // Инициализация
+        renderSessions();
     </script>
 </body>
 </html>

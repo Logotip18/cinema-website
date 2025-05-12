@@ -64,6 +64,19 @@
             background-color: #d4edda;
             border-color: #28a745;
         }
+        .sessions-list button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .sessions-list button:hover {
+            background-color: #0056b3;
+        }
         form {
             display: flex;
             flex-direction: column;
@@ -88,13 +101,13 @@
             background-color: #f0f0f0;
             cursor: not-allowed;
         }
-        button {
+        #pay-button {
             background-color: #28a745;
             color: white;
             cursor: pointer;
             border: none;
         }
-        button:hover {
+        #pay-button:hover {
             background-color: #218838;
         }
         #payment-message, #seat-message {
@@ -113,6 +126,24 @@
             padding: 10px;
             border-radius: 5px;
         }
+        @media (max-width: 768px) {
+            .seating-container {
+                flex-direction: column;
+            }
+            .sessions-list {
+                max-width: 100%;
+            }
+            canvas {
+                width: 100%;
+                height: auto;
+            }
+            .seating-chart h2 {
+                font-size: 1.2em;
+            }
+            .sessions-list li {
+                font-size: 0.9em;
+            }
+        }
     </style>
 </head>
 <body>
@@ -127,6 +158,7 @@
         <div class="sessions-list">
             <h3>Ближайшие сеансы</h3>
             <ul id="sessions"></ul>
+            <button id="show-all-sessions">Показать все</button>
         </div>
     </div>
     <form id="booking-form">
@@ -158,6 +190,7 @@
         const seatPadding = 20;
         let seats = Array(rows).fill().map(() => Array(cols).fill('free')); // free, selected, booked
         let selectedSeats = [];
+        let showAll = false;
 
         // Функция для рисования кружочка
         function drawCircle(x, y, size, color) {
@@ -257,21 +290,27 @@
             loadSeats();
         }
 
-        // Рендеринг списка ближайших сеансов
+        // Рендеринг списка сеансов
         function renderSessionsList() {
             const sessionsList = document.getElementById('sessions');
+            const showAllButton = document.getElementById('show-all-sessions');
             sessionsList.innerHTML = '';
             const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
             const now = new Date('2025-05-12T00:00:00'); // Текущая дата
-            const upcoming = sessions
+            let filteredSessions = sessions
                 .map(session => ({
                     ...session,
                     dateTime: new Date(`${session.date}T${session.time}`)
                 }))
                 .filter(session => session.dateTime >= now)
-                .sort((a, b) => a.dateTime - b.dateTime)
-                .slice(0, 3); // Только 3 ближайших
-            upcoming.forEach(session => {
+                .sort((a, b) => a.dateTime - b.dateTime);
+            if (!showAll) {
+                filteredSessions = filteredSessions.slice(0, 3); // Только 3 ближайших
+                showAllButton.textContent = 'Показать все';
+            } else {
+                showAllButton.textContent = 'Скрыть';
+            }
+            filteredSessions.forEach(session => {
                 const li = document.createElement('li');
                 li.dataset.movie = session.movie;
                 li.dataset.date = session.date;
@@ -307,6 +346,19 @@
                 updateTimes();
                 timeSelect.value = li.dataset.time;
                 loadSeats();
+            }
+        });
+
+        // Обработка клика по кнопке "Показать все"
+        document.getElementById('show-all-sessions').addEventListener('click', () => {
+            showAll = !showAll;
+            renderSessionsList();
+        });
+
+        // Обновление списка при изменении localStorage
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'sessions_updated') {
+                renderSessionsList();
             }
         });
 
