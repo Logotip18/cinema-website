@@ -10,7 +10,7 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #e6f3fa; /* Светло-голубой фон */
+            background-color: #eef8ff; /* Светлее голубой фон */
         }
         h1, h2 {
             text-align: center;
@@ -33,7 +33,7 @@
             flex-direction: column;
             gap: 10px;
             max-width: 400px;
-            margin: 0 auto;
+            margin: 20px auto;
         }
         label {
             font-weight: bold;
@@ -43,6 +43,10 @@
             font-size: 16px;
             border: 1px solid #ccc;
             border-radius: 5px;
+        }
+        select:disabled, input:disabled {
+            background-color: #f0f0f0;
+            cursor: not-allowed;
         }
         button {
             background-color: #28a745;
@@ -63,6 +67,18 @@
             font-size: 16px;
             color: #333;
         }
+        .admin-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .admin-link a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .admin-link a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -73,19 +89,15 @@
     </div>
     <div id="selected-seats">Выбрано мест: 0 (0 RUB)</div>
     <form id="booking-form">
-        <label for="movie">Фильм:</label>
-        <select id="movie" required>
-            <option value="Дюна 2">Дюна 2</option>
-            <option value="Оппенгеймер">Оппенгеймер</option>
-            <option value="Барби">Барби</option>
-        </select>
         <label for="date">Дата:</label>
         <input type="date" id="date" required>
+        <label for="movie">Фильм:</label>
+        <select id="movie" disabled required>
+            <option value="">Выберите фильм</option>
+        </select>
         <label for="time">Время:</label>
-        <select id="time" required>
-            <option value="18:00">18:00</option>
-            <option value="20:00">20:00</option>
-            <option value="22:00">22:00</option>
+        <select id="time" disabled required>
+            <option value="">Выберите время</option>
         </select>
         <label for="name">Имя:</label>
         <input type="text" id="name" required>
@@ -94,6 +106,9 @@
         <button type="button" id="pay-button">Оплатить (0 RUB)</button>
     </form>
     <div id="payment-message"></div>
+    <div class="admin-link">
+        <a href="/admin.html">Админ-панель</a>
+    </div>
 
     <script>
         // Canvas для рассадки
@@ -106,20 +121,16 @@
         let seats = Array(rows).fill().map(() => Array(cols).fill('free')); // free, selected, booked
         let selectedSeats = [];
 
-        // Функция для рисования морской звезды
-        function drawStar(x, y, size, color) {
+        // Функция для рисования рыбки
+        function drawFish(x, y, size, color) {
             ctx.fillStyle = color;
             ctx.beginPath();
-            for (let i = 0; i < 5; i++) {
-                const angle = Math.PI / 2.5 * i - Math.PI / 2;
-                const outerX = x + Math.cos(angle) * size;
-                const outerY = y + Math.sin(angle) * size;
-                const innerAngle = angle + Math.PI / 5;
-                const innerX = x + Math.cos(innerAngle) * (size / 2);
-                const innerY = y + Math.sin(innerAngle) * (size / 2);
-                ctx.lineTo(outerX, outerY);
-                ctx.lineTo(innerX, innerY);
-            }
+            // Тело рыбки (овал)
+            ctx.ellipse(x, y, size / 2, size / 4, 0, 0, Math.PI * 2);
+            // Хвост (треугольник)
+            ctx.moveTo(x - size / 2, y);
+            ctx.lineTo(x - size, y - size / 4);
+            ctx.lineTo(x - size, y + size / 4);
             ctx.closePath();
             ctx.fill();
         }
@@ -152,7 +163,7 @@
                     const y = row * (seatSize + seatPadding) + 70;
                     const color = seats[row][col] === 'free' ? 'green' :
                                   seats[row][col] === 'selected' ? 'yellow' : 'red';
-                    drawStar(x, y, seatSize / 2, color);
+                    drawFish(x, y, seatSize, color);
                     ctx.fillStyle = 'white';
                     ctx.font = '10px Arial';
                     ctx.fillText(`${row + 1}-${col + 1}`, x - 10, y + 5);
@@ -167,6 +178,52 @@
             document.getElementById('selected-seats').textContent = `Выбрано мест: ${count} (${total} RUB)`;
             document.getElementById('pay-button').textContent = `Оплатить (${total} RUB)`;
         }
+
+        // Загрузка фильмов и времени
+        const dateInput = document.getElementById('date');
+        const movieSelect = document.getElementById('movie');
+        const timeSelect = document.getElementById('time');
+
+        function updateMovies() {
+            const date = dateInput.value;
+            movieSelect.disabled = !date;
+            movieSelect.innerHTML = '<option value="">Выберите фильм</option>';
+            timeSelect.disabled = true;
+            timeSelect.innerHTML = '<option value="">Выберите время</option>';
+            if (date) {
+                const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+                const movies = [...new Set(sessions.filter(s => s.date === date).map(s => s.movie))];
+                movies.forEach(movie => {
+                    const option = document.createElement('option');
+                    option.value = movie;
+                    option.textContent = movie;
+                    movieSelect.appendChild(option);
+                });
+            }
+            loadSeats();
+        }
+
+        function updateTimes() {
+            const date = dateInput.value;
+            const movie = movieSelect.value;
+            timeSelect.disabled = !movie;
+            timeSelect.innerHTML = '<option value="">Выберите время</option>';
+            if (movie && date) {
+                const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+                const times = sessions.filter(s => s.date === date && s.movie === movie).map(s => s.time);
+                times.forEach(time => {
+                    const option = document.createElement('option');
+                    option.value = time;
+                    option.textContent = time;
+                    timeSelect.appendChild(option);
+                });
+            }
+            loadSeats();
+        }
+
+        dateInput.addEventListener('change', updateMovies);
+        movieSelect.addEventListener('change', updateTimes);
+        timeSelect.addEventListener('change', loadSeats);
 
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
@@ -190,11 +247,6 @@
                 }
             }
         });
-
-        // Обновление карты при смене фильма, даты или времени
-        document.getElementById('movie').addEventListener('change', loadSeats);
-        document.getElementById('date').addEventListener('change', loadSeats);
-        document.getElementById('time').addEventListener('change', loadSeats);
 
         // Обработка оплаты (заглушка)
         const payButton = document.getElementById('pay-button');
