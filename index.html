@@ -1,181 +1,198 @@
 <!DOCTYPE html>
-     <html lang="ru">
-     <head>
-         <meta charset="UTF-8">
-         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-         <title>LVG Kino - Бронирование билетов</title>
-         <style>
-             body {
-                 font-family: Arial, sans-serif;
-                 max-width: 800px;
-                 margin: 0 auto;
-                 padding: 20px;
-                 background-color: #f4f4f4;
-             }
-             h1, h2 {
-                 text-align: center;
-                 color: #333;
-             }
-             .seating-chart {
-                 margin: 20px 0;
-                 text-align: center;
-             }
-             canvas {
-                 border: 1px solid #ccc;
-             }
-             form {
-                 display: flex;
-                 flex-direction: column;
-                 gap: 10px;
-                 max-width: 400px;
-                 margin: 0 auto;
-             }
-             label {
-                 font-weight: bold;
-             }
-             select, input, button {
-                 padding: 10px;
-                 font-size: 16px;
-                 border: 1px solid #ccc;
-                 border-radius: 5px;
-             }
-             button {
-                 background-color: #28a745;
-                 color: white;
-                 cursor: pointer;
-                 border: none;
-             }
-             button:hover {
-                 background-color: #218838;
-             }
-             #payment-message {
-                 color: #333;
-                 text-align: center;
-                 margin-top: 10px;
-             }
-         </style>
-     </head>
-     <body>
-         <h1>LVG Kino - Бронирование билетов</h1>
-         <h2>Выберите место</h2>
-         <div class="seating-chart">
-             <canvas id="seatingCanvas" width="500" height="300"></canvas>
-         </div>
-         <form id="booking-form">
-             <label for="movie">Фильм:</label>
-             <select id="movie" required>
-                 <option value="Дюна 2">Дюна 2</option>
-                 <option value="Оппенгеймер">Оппенгеймер</option>
-                 <option value="Барби">Барби</option>
-             </select>
-             <label for="time">Время:</label>
-             <select id="time" required>
-                 <option value="18:00">18:00</option>
-                 <option value="20:00">20:00</option>
-                 <option value="22:00">22:00</option>
-             </select>
-             <label for="name">Имя:</label>
-             <input type="text" id="name" required>
-             <label for="email">Email:</label>
-             <input type="email" id="email" required>
-             <button type="button" id="pay-button">Оплатить (100 RUB)</button>
-         </form>
-         <div id="payment-message"></div>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LVG Kino - Бронирование билетов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #e6f3fa; /* Светло-голубой фон */
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        .seating-chart {
+            margin: 20px 0;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        label {
+            font-weight: bold;
+        }
+        select, input, button {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #payment-message {
+            color: #333;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>LVG Kino - Бронирование билетов</h1>
+    <h2>Выберите место</h2>
+    <div class="seating-chart">
+        <canvas id="seatingCanvas" width="500" height="300"></canvas>
+    </div>
+    <form id="booking-form">
+        <label for="movie">Фильм:</label>
+        <select id="movie" required>
+            <option value="Дюна 2">Дюна 2</option>
+            <option value="Оппенгеймер">Оппенгеймер</option>
+            <option value="Барби">Барби</option>
+        </select>
+        <label for="time">Время:</label>
+        <select id="time" required>
+            <option value="18:00">18:00</option>
+            <option value="20:00">20:00</option>
+            <option value="22:00">22:00</option>
+        </select>
+        <label for="name">Имя:</label>
+        <input type="text" id="name" required>
+        <label for="email">Email:</label>
+        <input type="email" id="email" required>
+        <button type="button" id="pay-button">Оплатить (100 RUB)</button>
+    </form>
+    <div id="payment-message"></div>
 
-         <script>
-             // Canvas для рассадки
-             const canvas = document.getElementById('seatingCanvas');
-             const ctx = canvas.getContext('2d');
-             const rows = 5;
-             const cols = 10;
-             const seatWidth = 40;
-             const seatHeight = 30;
-             const seatPadding = 10;
-             let seats = Array(rows).fill().map(() => Array(cols).fill('free')); // free, selected, booked
-             let selectedSeat = null;
+    <script>
+        // Canvas для рассадки
+        const canvas = document.getElementById('seatingCanvas');
+        const ctx = canvas.getContext('2d');
+        const rows = 5;
+        const cols = 10;
+        const seatWidth = 40;
+        const seatHeight = 30;
+        const seatPadding = 10;
+        let seats = Array(rows).fill().map(() => Array(cols).fill('free')); // free, selected, booked
+        let selectedSeat = null;
 
-             // Загрузка сохранённых броней
-             const savedSeats = JSON.parse(localStorage.getItem('seats') || '[]');
-             savedSeats.forEach(seat => {
-                 seats[seat.row][seat.col] = 'booked';
-             });
+        // Функция для получения ключа сеанса
+        function getSessionKey() {
+            const movie = document.getElementById('movie').value;
+            const time = document.getElementById('time').value;
+            return `seats_${movie}_${time}`;
+        }
 
-             function drawSeats() {
-                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                 for (let row = 0; row < rows; row++) {
-                     for (let col = 0; col < cols; col++) {
-                         const x = col * (seatWidth + seatPadding) + 50;
-                         const y = row * (seatHeight + seatPadding) + 50;
-                         ctx.fillStyle = seats[row][col] === 'free' ? 'green' :
-                                         seats[row][col] === 'selected' ? 'yellow' : 'red';
-                         ctx.fillRect(x, y, seatWidth, seatHeight);
-                         ctx.fillStyle = 'white';
-                         ctx.font = '12px Arial';
-                         ctx.fillText(`${row + 1}-${col + 1}`, x + 10, y + 20);
-                     }
-                 }
-             }
+        // Загрузка сохранённых броней для текущего сеанса
+        function loadSeats() {
+            seats = Array(rows).fill().map(() => Array(cols).fill('free'));
+            const savedSeats = JSON.parse(localStorage.getItem(getSessionKey()) || '[]');
+            savedSeats.forEach(seat => {
+                seats[seat.row][seat.col] = 'booked';
+            });
+            selectedSeat = null;
+            drawSeats();
+        }
 
-             canvas.addEventListener('click', (e) => {
-                 const rect = canvas.getBoundingClientRect();
-                 const x = e.clientX - rect.left;
-                 const y = e.clientY - rect.top;
-                 for (let row = 0; row < rows; row++) {
-                     for (let col = 0; col < cols; col++) {
-                         const seatX = col * (seatWidth + seatPadding) + 50;
-                         const seatY = row * (seatHeight + seatPadding) + 50;
-                         if (x >= seatX && x <= seatX + seatWidth && y >= seatY && y <= seatY + seatHeight) {
-                             if (seats[row][col] === 'free') {
-                                 if (selectedSeat) {
-                                     seats[selectedSeat.row][selectedSeat.col] = 'free';
-                                 }
-                                 seats[row][col] = 'selected';
-                                 selectedSeat = { row, col };
-                                 drawSeats();
-                             }
-                         }
-                     }
-                 }
-             });
+        function drawSeats() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const x = col * (seatWidth + seatPadding) + 50;
+                    const y = row * (seatHeight + seatPadding) + 50;
+                    ctx.fillStyle = seats[row][col] === 'free' ? 'green' :
+                                    seats[row][col] === 'selected' ? 'yellow' : 'red';
+                    ctx.fillRect(x, y, seatWidth, seatHeight);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(`${row + 1}-${col + 1}`, x + 10, y + 20);
+                }
+            }
+        }
 
-             // Обработка оплаты (заглушка)
-             const payButton = document.getElementById('pay-button');
-             payButton.addEventListener('click', async () => {
-                 if (!selectedSeat) {
-                     alert('Пожалуйста, выберите место!');
-                     return;
-                 }
-                 const movie = document.getElementById('movie').value;
-                 const time = document.getElementById('time').value;
-                 const name = document.getElementById('name').value;
-                 const email = document.getElementById('email').value;
-                 try {
-                     const response = await fetch('/.netlify/functions/create-payment', {
-                         method: 'POST',
-                         headers: { 'Content-Type': 'application/json' },
-                         body: JSON.stringify({
-                             movie,
-                             time,
-                             name,
-                             email,
-                             seat: selectedSeat
-                         })
-                     });
-                     const data = await response.json();
-                     document.getElementById('payment-message').textContent = data.message;
-                     // Имитация успешной оплаты для тестирования
-                     seats[selectedSeat.row][selectedSeat.col] = 'booked';
-                     localStorage.setItem('seats', JSON.stringify(
-                         JSON.parse(localStorage.getItem('seats') || '[]').concat(selectedSeat)
-                     ));
-                     drawSeats();
-                     document.getElementById('payment-message').textContent = 'Оплата пока не подключена, но место забронировано для теста!';
-                 } catch (error) {
-                     document.getElementById('payment-message').textContent = 'Ошибка: ' + error.message;
-                 }
-             });
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const seatX = col * (seatWidth + seatPadding) + 50;
+                    const seatY = row * (seatHeight + seatPadding) + 50;
+                    if (x >= seatX && x <= seatX + seatWidth && y >= seatY && y <= seatY + seatHeight) {
+                        if (seats[row][col] === 'free') {
+                            if (selectedSeat) {
+                                seats[selectedSeat.row][selectedSeat.col] = 'free';
+                            }
+                            seats[row][col] = 'selected';
+                            selectedSeat = { row, col };
+                            drawSeats();
+                        }
+                    }
+                }
+            }
+        });
 
-             drawSeats();
-         </script>
-     </body>
-     </html>
+        // Обновление карты при смене фильма или времени
+        document.getElementById('movie').addEventListener('change', loadSeats);
+        document.getElementById('time').addEventListener('change', loadSeats);
+
+        // Обработка оплаты (заглушка)
+        const payButton = document.getElementById('pay-button');
+        payButton.addEventListener('click', async () => {
+            if (!selectedSeat) {
+                alert('Пожалуйста, выберите место!');
+                return;
+            }
+            const movie = document.getElementById('movie').value;
+            const time = document.getElementById('time').value;
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            try {
+                const response = await fetch('/.netlify/functions/create-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        movie,
+                        time,
+                        name,
+                        email,
+                        seat: selectedSeat
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('payment-message').textContent = data.message;
+                // Имитация успешной оплаты для тестирования
+                seats[selectedSeat.row][selectedSeat.col] = 'booked';
+                localStorage.setItem(getSessionKey(), JSON.stringify(
+                    JSON.parse(localStorage.getItem(getSessionKey()) || '[]').concat(selectedSeat)
+                ));
+                drawSeats();
+                document.getElementById('payment-message').textContent = 'Оплата пока не подключена, но место забронировано для теста!';
+            } catch (error) {
+                document.getElementById('payment-message').textContent = 'Ошибка: ' + error.message;
+            }
+        });
+
+        // Инициализация
+        loadSeats();
+    </script>
+</body>
+</html>
