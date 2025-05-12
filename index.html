@@ -12,10 +12,15 @@
             padding: 20px;
             background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center/cover;
         }
-        h1, h2 {
+        h1, h2, h4 {
             text-align: center;
             color: #fff;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        h4 {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 10px 0;
         }
         .seating-container {
             display: flex;
@@ -50,12 +55,19 @@
             list-style: none;
             padding: 0;
         }
+        .sessions-list h4 {
+            margin: 15px 0 5px;
+            padding: 5px;
+            background-color: rgba(0, 123, 255, 0.1);
+            border-radius: 5px;
+        }
         .sessions-list li {
             padding: 10px;
             margin: 5px 0;
             border: 1px solid #ccc;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 1em;
         }
         .sessions-list li:hover {
             background-color: #f0f0f0;
@@ -225,8 +237,8 @@
         // Canvas для схемы зала
         const canvas = document.getElementById('seatingCanvas');
         const ctx = canvas.getContext('2d');
-        const seatSize = 20;
-        const seatPadding = 20;
+        const seatSize = 15; // Уменьшен до 15px
+        const seatPadding = 15; // Уменьшен до 15px
         let selectedSeats = [];
         let showAll = false;
 
@@ -249,23 +261,23 @@
         // Количество человек для каждого забронированного дивана/углового дивана
         const seatCounts = {};
 
-        // Рисование пуфа (кружок)
+        // Рисование пуфа (кружок, голубой)
         function drawPouf(x, y, status) {
-            ctx.fillStyle = status === 'free' ? '#00cc00' : status === 'selected' ? 'yellow' : 'red';
+            ctx.fillStyle = status === 'free' ? '#00cccc' : status === 'selected' ? 'yellow' : 'red';
             ctx.beginPath();
             ctx.arc(x, y, seatSize / 2, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        // Рисование дивана (прямоугольник)
+        // Рисование дивана (прямоугольник, зелёный)
         function drawSofa(x, y, width, height, status) {
             ctx.fillStyle = status === 'free' ? '#00cc00' : status === 'selected' ? 'yellow' : 'red';
             ctx.fillRect(x, y, width, height);
         }
 
-        // Рисование углового дивана (залитая прямоугольная область)
+        // Рисование углового дивана (коричневый)
         function drawCornerSofa(x, y, width, height, status) {
-            ctx.fillStyle = status === 'free' ? '#00cc00' : status === 'selected' ? 'yellow' : 'red';
+            ctx.fillStyle = status === 'free' ? '#8B4513' : status === 'selected' ? 'yellow' : 'red';
             ctx.fillRect(x, y, width, height);
         }
 
@@ -277,80 +289,84 @@
             ctx.fillStyle = 'gray';
             ctx.fillRect(50, 20, 600, 20);
             ctx.fillStyle = 'white';
-            ctx.font = '14px Arial';
+            ctx.font = '12px Arial';
             ctx.fillText('Экран', 320, 32);
 
-            // 0-й ряд: 8 пуфов
+            // 0-й ряд: 8 пуфов (центрируем)
+            const poufStartX = (700 - (8 * seatSize + 7 * seatPadding)) / 2;
             for (let col = 0; col < 8; col++) {
-                const x = col * (seatSize + seatPadding) + 100;
+                const x = poufStartX + col * (seatSize + seatPadding);
                 const y = 70;
                 drawPouf(x, y, seats.poufs[0][col]);
                 ctx.fillStyle = 'black';
                 ctx.font = '10px Arial';
-                ctx.fillText(`P${col + 1}`, x - 10, y + 5);
+                ctx.fillText(`р0-${col + 1}`, x - 10, y + 5);
             }
 
             // 1-й ряд: 5 диванов
+            const sofa1StartX = (700 - (5 * 80 + 4 * seatPadding)) / 2;
             for (let col = 0; col < 5; col++) {
-                const x = col * 100 + 100;
+                const x = sofa1StartX + col * (80 + seatPadding);
                 const y = 120;
-                drawSofa(x, y, 80, 30, seats.sofas[0][col]);
+                drawSofa(x, y, 60, 25, seats.sofas[0][col]);
                 ctx.fillStyle = 'black';
                 ctx.font = '10px Arial';
-                ctx.fillText(`S1-${col + 1}`, x + 25, y + 20);
+                ctx.fillText(`р1д${col + 1}`, x + 20, y + 15);
             }
 
             // 2-й ряд: 6 диванов (шахматный порядок)
+            const sofa2StartX = (700 - (6 * 60 + 5 * seatPadding)) / 2 + 30;
             for (let col = 0; col < 6; col++) {
-                const x = col * 90 + 80;
+                const x = sofa2StartX + col * (60 + seatPadding);
                 const y = 180;
-                drawSofa(x, y, 80, 30, seats.sofas[1][col]);
+                drawSofa(x, y, 60, 25, seats.sofas[1][col]);
                 ctx.fillStyle = 'black';
                 ctx.font = '10px Arial';
-                ctx.fillText(`S2-${col + 1}`, x + 25, y + 20);
+                ctx.fillText(`р2д${col + 1}`, x + 20, y + 15);
             }
 
-            // 3-й ряд: 6 диванов (шахматный порядок)
+            // 3-й ряд: 6 диванов
+            const sofa3StartX = (700 - (6 * 60 + 5 * seatPadding)) / 2;
             for (let col = 0; col < 6; col++) {
-                const x = col * 90 + 100;
+                const x = sofa3StartX + col * (60 + seatPadding);
                 const y = 240;
-                drawSofa(x, y, 80, 30, seats.sofas[2][col]);
+                drawSofa(x, y, 60, 25, seats.sofas[2][col]);
                 ctx.fillStyle = 'black';
                 ctx.font = '10px Arial';
-                ctx.fillText(`S3-${col + 1}`, x + 25, y + 20);
+                ctx.fillText(`р3д${col + 1}`, x + 20, y + 15);
             }
 
             // 4-й ряд: 4 дивана + 2 угловых
+            const sofa4StartX = (700 - (4 * 60 + 3 * seatPadding)) / 2 + 90;
             for (let col = 0; col < 4; col++) {
-                const x = col * 90 + 160;
+                const x = sofa4StartX + col * (60 + seatPadding);
                 const y = 300;
-                drawSofa(x, y, 80, 30, seats.sofas[3][col]);
+                drawSofa(x, y, 60, 25, seats.sofas[3][col]);
                 ctx.fillStyle = 'black';
                 ctx.font = '10px Arial';
-                ctx.fillText(`S4-${col + 1}`, x + 25, y + 20);
+                ctx.fillText(`р4д${col + 1}`, x + 20, y + 15);
             }
-            // Угловые диваны (4-й ряд)
-            drawCornerSofa(50, 300, 100, 40, seats.cornerSofas[0][0]);
+            drawCornerSofa(50, 300, 80, 30, seats.cornerSofas[0][0]);
             ctx.fillStyle = 'black';
-            ctx.fillText('CS4-1', 80, 325);
-            drawCornerSofa(550, 300, 100, 40, seats.cornerSofas[0][1]);
-            ctx.fillText('CS4-2', 580, 325);
+            ctx.fillText('р4уд1', 70, 315);
+            drawCornerSofa(570, 300, 80, 30, seats.cornerSofas[0][1]);
+            ctx.fillText('р4уд2', 590, 315);
 
-            // 5-й ряд: 3 дивана + 2 угловых (шахматный порядок)
+            // 5-й ряд: 3 дивана + 2 угловых
+            const sofa5StartX = (700 - (3 * 60 + 2 * seatPadding)) / 2 + 135;
             for (let col = 0; col < 3; col++) {
-                const x = col * 100 + 200;
+                const x = sofa5StartX + col * (60 + seatPadding);
                 const y = 360;
-                drawSofa(x, y, 80, 30, seats.sofas[4][col]);
+                drawSofa(x, y, 60, 25, seats.sofas[4][col]);
                 ctx.fillStyle = 'black';
                 ctx.font = '10px Arial';
-                ctx.fillText(`S5-${col + 1}`, x + 25, y + 20);
+                ctx.fillText(`р5д${col + 1}`, x + 20, y + 15);
             }
-            // Угловые диваны (5-й ряд)
-            drawCornerSofa(50, 360, 100, 40, seats.cornerSofas[1][0]);
+            drawCornerSofa(50, 360, 80, 30, seats.cornerSofas[1][0]);
             ctx.fillStyle = 'black';
-            ctx.fillText('CS5-1', 80, 385);
-            drawCornerSofa(550, 360, 100, 40, seats.cornerSofas[1][1]);
-            ctx.fillText('CS5-2', 580, 385);
+            ctx.fillText('р5уд1', 70, 375);
+            drawCornerSofa(570, 360, 80, 30, seats.cornerSofas[1][1]);
+            ctx.fillText('р5уд2', 590, 375);
         }
 
         // Функция для получения ключа сеанса
@@ -506,14 +522,24 @@
             } else {
                 showAllButton.textContent = 'Скрыть';
             }
+            const sessionsByDate = {};
             filteredSessions.forEach(session => {
-                const li = document.createElement('li');
-                li.dataset.movie = session.movie;
-                li.dataset.date = session.date;
-                li.dataset.time = session.time;
-                li.textContent = `${session.movie} | ${session.date} | ${session.time}`;
-                sessionsList.appendChild(li);
+                if (!sessionsByDate[session.date]) sessionsByDate[session.date] = [];
+                sessionsByDate[session.date].push(session);
             });
+            for (const date in sessionsByDate) {
+                const h4 = document.createElement('h4');
+                h4.textContent = date;
+                sessionsList.appendChild(h4);
+                sessionsByDate[date].forEach(session => {
+                    const li = document.createElement('li');
+                    li.dataset.movie = session.movie;
+                    li.dataset.date = session.date;
+                    li.dataset.time = session.time;
+                    li.textContent = `${session.movie} | ${session.time}`;
+                    sessionsList.appendChild(li);
+                });
+            }
             updateActiveSession();
         }
 
@@ -576,8 +602,9 @@
             const y = e.clientY - rect.top;
 
             // 0-й ряд: пуфы
+            const poufStartX = (700 - (8 * seatSize + 7 * seatPadding)) / 2;
             for (let col = 0; col < 8; col++) {
-                const seatX = col * (seatSize + seatPadding) + 100;
+                const seatX = poufStartX + col * (seatSize + seatPadding);
                 const seatY = 70;
                 if (Math.hypot(x - seatX, y - seatY) < seatSize / 2) {
                     if (seats.poufs[0][col] === 'free') {
@@ -594,10 +621,11 @@
             }
 
             // 1-й ряд: 5 диванов
+            const sofa1StartX = (700 - (5 * 60 + 4 * seatPadding)) / 2;
             for (let col = 0; col < 5; col++) {
-                const seatX = col * 100 + 100;
+                const seatX = sofa1StartX + col * (60 + seatPadding);
                 const seatY = 120;
-                if (x >= seatX && x <= seatX + 80 && y >= seatY && y <= seatY + 30) {
+                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
                     if (seats.sofas[0][col] === 'free') {
                         showSeatModal('sofa', 0, col, 2, 3);
                     } else if (seats.sofas[0][col] === 'selected') {
@@ -612,10 +640,11 @@
             }
 
             // 2-й ряд: 6 диванов
+            const sofa2StartX = (700 - (6 * 60 + 5 * seatPadding)) / 2 + 30;
             for (let col = 0; col < 6; col++) {
-                const seatX = col * 90 + 80;
+                const seatX = sofa2StartX + col * (60 + seatPadding);
                 const seatY = 180;
-                if (x >= seatX && x <= seatX + 80 && y >= seatY && y <= seatY + 30) {
+                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
                     if (seats.sofas[1][col] === 'free') {
                         showSeatModal('sofa', 1, col, 2, 3);
                     } else if (seats.sofas[1][col] === 'selected') {
@@ -630,10 +659,11 @@
             }
 
             // 3-й ряд: 6 диванов
+            const sofa3StartX = (700 - (6 * 60 + 5 * seatPadding)) / 2;
             for (let col = 0; col < 6; col++) {
-                const seatX = col * 90 + 100;
+                const seatX = sofa3StartX + col * (60 + seatPadding);
                 const seatY = 240;
-                if (x >= seatX && x <= seatX + 80 && y >= seatY && y <= seatY + 30) {
+                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
                     if (seats.sofas[2][col] === 'free') {
                         showSeatModal('sofa', 2, col, 2, 3);
                     } else if (seats.sofas[2][col] === 'selected') {
@@ -648,10 +678,11 @@
             }
 
             // 4-й ряд: 4 дивана + 2 угловых
+            const sofa4StartX = (700 - (4 * 60 + 3 * seatPadding)) / 2 + 90;
             for (let col = 0; col < 4; col++) {
-                const seatX = col * 90 + 160;
+                const seatX = sofa4StartX + col * (60 + seatPadding);
                 const seatY = 300;
-                if (x >= seatX && x <= seatX + 80 && y >= seatY && y <= seatY + 30) {
+                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
                     if (seats.sofas[3][col] === 'free') {
                         showSeatModal('sofa', 3, col, 2, 3);
                     } else if (seats.sofas[3][col] === 'selected') {
@@ -664,8 +695,7 @@
                     return;
                 }
             }
-            // Угловые диваны (4-й ряд)
-            if (x >= 50 && x <= 150 && y >= 300 && y <= 340) {
+            if (x >= 50 && x <= 130 && y >= 300 && y <= 330) {
                 if (seats.cornerSofas[0][0] === 'free') {
                     showSeatModal('cornerSofa', 0, 0, 4, 6);
                 } else if (seats.cornerSofas[0][0] === 'selected') {
@@ -677,7 +707,7 @@
                 }
                 return;
             }
-            if (x >= 550 && x <= 650 && y >= 300 && y <= 340) {
+            if (x >= 570 && x <= 650 && y >= 300 && y <= 330) {
                 if (seats.cornerSofas[0][1] === 'free') {
                     showSeatModal('cornerSofa', 0, 1, 4, 6);
                 } else if (seats.cornerSofas[0][1] === 'selected') {
@@ -691,10 +721,11 @@
             }
 
             // 5-й ряд: 3 дивана + 2 угловых
+            const sofa5StartX = (700 - (3 * 60 + 2 * seatPadding)) / 2 + 135;
             for (let col = 0; col < 3; col++) {
-                const seatX = col * 100 + 200;
-                const seatY = 360;
-                if (x >= seatX && x <= seatX + 80 && y >= seatY && y <= seatY + 30) {
+                const seatX = sofa5StartX + col * (60 + seatPadding);
+                const y = 360;
+                if (x >= seatX && x <= seatX + 60 && y >= y && y <= y + 25) {
                     if (seats.sofas[4][col] === 'free') {
                         showSeatModal('sofa', 4, col, 2, 3);
                     } else if (seats.sofas[4][col] === 'selected') {
@@ -707,8 +738,7 @@
                     return;
                 }
             }
-            // Угловые диваны (5-й ряд)
-            if (x >= 50 && x <= 150 && y >= 360 && y <= 400) {
+            if (x >= 50 && x <= 130 && y >= 360 && y <= 390) {
                 if (seats.cornerSofas[1][0] === 'free') {
                     showSeatModal('cornerSofa', 1, 0, 4, 6);
                 } else if (seats.cornerSofas[1][0] === 'selected') {
@@ -720,7 +750,7 @@
                 }
                 return;
             }
-            if (x >= 550 && x <= 650 && y >= 360 && y <= 400) {
+            if (x >= 570 && x <= 650 && y >= 360 && y <= 390) {
                 if (seats.cornerSofas[1][1] === 'free') {
                     showSeatModal('cornerSofa', 1, 1, 4, 6);
                 } else if (seats.cornerSofas[1][1] === 'selected') {

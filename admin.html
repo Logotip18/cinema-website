@@ -93,7 +93,7 @@
                 const li = document.createElement('li');
                 li.innerHTML = `
                     ${session.movie} | ${session.date} | ${session.time}
-                    <br>Брони: ${bookings.length ? bookings.map(s => `${s.type === 'pouf' ? `Пуф P${s.col + 1}` : s.type === 'sofa' ? `Диван S${s.row + 1}-${s.col + 1} (${s.count} чел.)` : `Угловой CS${s.row + 4}-${s.col + 1} (${s.count} чел.)`}`).join(', ') : 'Нет'}
+                    <br>Брони: ${bookings.length ? bookings.map(s => `${s.type === 'pouf' ? `Пуф р0-${s.col + 1}` : s.type === 'sofa' ? `Диван р${s.row + 1}д${s.col + 1} (${s.count} чел.)` : `Угловой р${s.row + 4}уд${s.col + 1} (${s.count} чел.)`}`).join(', ') : 'Нет'}
                     <br><button class="delete" data-index="${index}">Удалить</button>
                 `;
                 sessionsList.appendChild(li);
