@@ -249,6 +249,18 @@
         const movieSelect = document.getElementById('movie');
         const timeSelect = document.getElementById('time');
 
+        // Инициализация тестовых данных, если их нет
+        if (!localStorage.getItem('sessions')) {
+            const testSessions = [
+                { date: '2025-05-12', movie: 'Фильм 1', time: '12:00' },
+                { date: '2025-05-12', movie: 'Фильм 2', time: '14:00' },
+                { date: '2025-05-12', movie: 'Фильм 3', time: '16:00' },
+                { date: '2025-05-13', movie: 'Фильм 4', time: '10:00' },
+                { date: '2025-05-13', movie: 'Фильм 5', time: '12:00' }
+            ];
+            localStorage.setItem('sessions', JSON.stringify(testSessions));
+        }
+
         function updateMovies() {
             const date = dateInput.value;
             movieSelect.disabled = !date;
@@ -300,7 +312,17 @@
             const sessionsList = document.getElementById('sessions');
             const showAllButton = document.getElementById('show-all-sessions');
             sessionsList.innerHTML = '';
-            const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+            let sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+            if (sessions.length === 0) {
+                sessions = [
+                    { date: '2025-05-12', movie: 'Фильм 1', time: '12:00' },
+                    { date: '2025-05-12', movie: 'Фильм 2', time: '14:00' },
+                    { date: '2025-05-12', movie: 'Фильм 3', time: '16:00' },
+                    { date: '2025-05-13', movie: 'Фильм 4', time: '10:00' },
+                    { date: '2025-05-13', movie: 'Фильм 5', time: '12:00' }
+                ];
+                localStorage.setItem('sessions', JSON.stringify(sessions));
+            }
             const now = new Date('2025-05-12T00:00:00');
             let filteredSessions = sessions.map(session => ({
                 ...session,
