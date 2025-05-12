@@ -10,7 +10,7 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #eef8ff; /* Светлее голубой фон */
+            background: linear-gradient(to bottom, #ffeb3b, #4fc3f7); /* Солнечный пляж: жёлтый → голубой */
         }
         h1, h2 {
             text-align: center;
@@ -23,6 +23,7 @@
         canvas {
             border: 1px solid #ccc;
             animation: fadeIn 1s ease-in;
+            background-color: rgba(255, 255, 255, 0.8); /* Полупрозрачный белый фон для canvas */
         }
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -67,18 +68,6 @@
             font-size: 16px;
             color: #333;
         }
-        .admin-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .admin-link a {
-            color: #007bff;
-            text-decoration: none;
-            font-size: 16px;
-        }
-        .admin-link a:hover {
-            text-decoration: underline;
-        }
     </style>
 </head>
 <body>
@@ -106,9 +95,6 @@
         <button type="button" id="pay-button">Оплатить (0 RUB)</button>
     </form>
     <div id="payment-message"></div>
-    <div class="admin-link">
-        <a href="/admin.html">Админ-панель</a>
-    </div>
 
     <script>
         // Canvas для рассадки
@@ -116,22 +102,16 @@
         const ctx = canvas.getContext('2d');
         const rows = 5;
         const cols = 10;
-        const seatSize = 30;
+        const seatSize = 20;
         const seatPadding = 20;
         let seats = Array(rows).fill().map(() => Array(cols).fill('free')); // free, selected, booked
         let selectedSeats = [];
 
-        // Функция для рисования рыбки
-        function drawFish(x, y, size, color) {
+        // Функция для рисования кружочка
+        function drawCircle(x, y, size, color) {
             ctx.fillStyle = color;
             ctx.beginPath();
-            // Тело рыбки (овал)
-            ctx.ellipse(x, y, size / 2, size / 4, 0, 0, Math.PI * 2);
-            // Хвост (треугольник)
-            ctx.moveTo(x - size / 2, y);
-            ctx.lineTo(x - size, y - size / 4);
-            ctx.lineTo(x - size, y + size / 4);
-            ctx.closePath();
+            ctx.arc(x, y, size / 2, 0, Math.PI * 2);
             ctx.fill();
         }
 
@@ -161,10 +141,10 @@
                 for (let col = 0; col < cols; col++) {
                     const x = col * (seatSize + seatPadding) + 70;
                     const y = row * (seatSize + seatPadding) + 70;
-                    const color = seats[row][col] === 'free' ? 'green' :
+                    const color = seats[row][col] === 'free' ? '#00cc00' :
                                   seats[row][col] === 'selected' ? 'yellow' : 'red';
-                    drawFish(x, y, seatSize, color);
-                    ctx.fillStyle = 'white';
+                    drawCircle(x, y, seatSize, color);
+                    ctx.fillStyle = 'black';
                     ctx.font = '10px Arial';
                     ctx.fillText(`${row + 1}-${col + 1}`, x - 10, y + 5);
                 }
