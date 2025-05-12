@@ -117,7 +117,7 @@
             ctx.font = '12px Arial';
             ctx.fillText('Экран', 320, 32);
 
-            const poufStartX = (700 - (8 * seatSize + 7 * seatPadding)) / 2;
+            const poufStartX = (canvas.width - (8 * seatSize + 7 * seatPadding)) / 2;
             for (let col = 0; col < 8; col++) {
                 const x = poufStartX + col * (seatSize + seatPadding);
                 const y = 70;
@@ -127,7 +127,7 @@
                 ctx.fillText(`0-${col + 1}`, x - 10, y + 5);
             }
 
-            const sofa1StartX = (700 - (5 * 60 + 4 * seatPadding)) / 2;
+            const sofa1StartX = (canvas.width - (5 * 60 + 4 * seatPadding)) / 2;
             for (let col = 0; col < 5; col++) {
                 const x = sofa1StartX + col * (60 + seatPadding);
                 const y = 120;
@@ -136,7 +136,7 @@
                 ctx.fillText(`1-${col + 1}`, x + 20, y + 15);
             }
 
-            const sofa2StartX = (700 - (6 * 60 + 5 * seatPadding)) / 2;
+            const sofa2StartX = (canvas.width - (6 * 60 + 5 * seatPadding)) / 2;
             for (let col = 0; col < 6; col++) {
                 const x = sofa2StartX + col * (60 + seatPadding);
                 const y = 180;
@@ -145,7 +145,7 @@
                 ctx.fillText(`2-${col + 1}`, x + 20, y + 15);
             }
 
-            const sofa3StartX = (700 - (6 * 60 + 5 * seatPadding)) / 2;
+            const sofa3StartX = (canvas.width - (6 * 60 + 5 * seatPadding)) / 2;
             for (let col = 0; col < 6; col++) {
                 const x = sofa3StartX + col * (60 + seatPadding);
                 const y = 240;
@@ -154,7 +154,7 @@
                 ctx.fillText(`3-${col + 1}`, x + 20, y + 15);
             }
 
-            const sofa4StartX = (700 - (4 * 60 + 3 * seatPadding)) / 2;
+            const sofa4StartX = (canvas.width - (4 * 60 + 3 * seatPadding)) / 2;
             for (let col = 0; col < 4; col++) {
                 const x = sofa4StartX + col * (60 + seatPadding);
                 const y = 300;
@@ -165,11 +165,11 @@
             drawCornerSofa(50, 300, 80, 30, seats.cornerSofas[0][0]);
             ctx.fillStyle = 'white';
             ctx.fillText('4-5', 75, 320);
-            drawCornerSofa(570, 300, 80, 30, seats.cornerSofas[0][1]);
+            drawCornerSofa(canvas.width - 130, 300, 80, 30, seats.cornerSofas[0][1]);
             ctx.fillStyle = 'white';
-            ctx.fillText('4-6', 595, 320);
+            ctx.fillText('4-6', canvas.width - 105, 320);
 
-            const sofa5StartX = (700 - (3 * 60 + 2 * seatPadding)) / 2;
+            const sofa5StartX = (canvas.width - (3 * 60 + 2 * seatPadding)) / 2;
             for (let col = 0; col < 3; col++) {
                 const x = sofa5StartX + col * (60 + seatPadding);
                 const y = 360;
@@ -180,9 +180,9 @@
             drawCornerSofa(50, 360, 80, 30, seats.cornerSofas[1][0]);
             ctx.fillStyle = 'white';
             ctx.fillText('5-4', 75, 380);
-            drawCornerSofa(570, 360, 80, 30, seats.cornerSofas[1][1]);
+            drawCornerSofa(canvas.width - 130, 360, 80, 30, seats.cornerSofas[1][1]);
             ctx.fillStyle = 'white';
-            ctx.fillText('5-5', 595, 380);
+            ctx.fillText('5-5', canvas.width - 105, 380);
         }
 
         function getSessionKey() {
@@ -257,6 +257,7 @@
             timeSelect.innerHTML = '<option value="">Выберите время</option>';
             if (date) {
                 const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+                console.log('Sessions from localStorage:', sessions); // Отладка
                 const movies = [...new Set(sessions.filter(s => s.date === date).map(s => s.movie))];
                 movies.forEach(movie => {
                     const option = document.createElement('option');
@@ -267,6 +268,8 @@
                 if (movies.length > 0) {
                     movieSelect.value = movies[0];
                     updateTimes();
+                } else {
+                    document.getElementById('seat-message').textContent = 'Нет фильмов для этой даты. Добавьте их через админ-панель.';
                 }
                 renderSessionsList();
             }
@@ -290,6 +293,8 @@
                 if (times.length > 0) {
                     timeSelect.value = times[0];
                     loadSeats();
+                } else {
+                    document.getElementById('seat-message').textContent = 'Нет сеансов для этого фильма. Добавьте их через админ-панель.';
                 }
             }
             renderSessionsList();
@@ -390,10 +395,12 @@
                 return;
             }
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
 
-            const poufStartX = (700 - (8 * seatSize + 7 * seatPadding)) / 2;
+            const poufStartX = (canvas.width - (8 * seatSize + 7 * seatPadding)) / 2;
             for (let col = 0; col < 8; col++) {
                 const seatX = poufStartX + col * (seatSize + seatPadding);
                 const seatY = 70;
@@ -411,7 +418,7 @@
                 }
             }
 
-            const sofa1StartX = (700 - (5 * 60 + 4 * seatPadding)) / 2;
+            const sofa1StartX = (canvas.width - (5 * 60 + 4 * seatPadding)) / 2;
             for (let col = 0; col < 5; col++) {
                 const seatX = sofa1StartX + col * (60 + seatPadding);
                 const seatY = 120;
@@ -428,11 +435,11 @@
                 }
             }
 
-            const sofa2StartX = (700 - (6 * 60 + 5 * seatPadding)) / 2;
+            const sofa2StartX = (canvas.width - (6 * 60 + 5 * seatPadding)) / 2;
             for (let col = 0; col < 6; col++) {
                 const seatX = sofa2StartX + col * (60 + seatPadding);
-                const y = 180;
-                if (x >= seatX && x <= seatX + 60 && y >= y && y <= y + 25) {
+                const seatY = 180;
+                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
                     if (seats.sofas[1][col] === 'free') showSeatModal('sofa', 1, col, 2, 3);
                     else if (seats.sofas[1][col] === 'selected') {
                         seats.sofas[1][col] = 'free';
@@ -445,11 +452,11 @@
                 }
             }
 
-            const sofa3StartX = (700 - (6 * 60 + 5 * seatPadding)) / 2;
+            const sofa3StartX = (canvas.width - (6 * 60 + 5 * seatPadding)) / 2;
             for (let col = 0; col < 6; col++) {
                 const seatX = sofa3StartX + col * (60 + seatPadding);
-                const y = 240;
-                if (x >= seatX && x <= seatX + 60 && y >= y && y <= y + 25) {
+                const seatY = 240;
+                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
                     if (seats.sofas[2][col] === 'free') showSeatModal('sofa', 2, col, 2, 3);
                     else if (seats.sofas[2][col] === 'selected') {
                         seats.sofas[2][col] = 'free';
@@ -462,11 +469,11 @@
                 }
             }
 
-            const sofa4StartX = (700 - (4 * 60 + 3 * seatPadding)) / 2;
+            const sofa4StartX = (canvas.width - (4 * 60 + 3 * seatPadding)) / 2;
             for (let col = 0; col < 4; col++) {
                 const seatX = sofa4StartX + col * (60 + seatPadding);
-                const y = 300;
-                if (x >= seatX && x <= seatX + 60 && y >= y && y <= y + 25) {
+                const seatY = 300;
+                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
                     if (seats.sofas[3][col] === 'free') showSeatModal('sofa', 3, col, 2, 3);
                     else if (seats.sofas[3][col] === 'selected') {
                         seats.sofas[3][col] = 'free';
@@ -489,7 +496,7 @@
                 }
                 return;
             }
-            if (x >= 570 && x <= 650 && y >= 300 && y <= 330) {
+            if (x >= canvas.width - 130 && x <= canvas.width - 50 && y >= 300 && y <= 330) {
                 if (seats.cornerSofas[0][1] === 'free') showSeatModal('cornerSofa', 0, 1, 4, 6);
                 else if (seats.cornerSofas[0][1] === 'selected') {
                     seats.cornerSofas[0][1] = 'free';
@@ -501,11 +508,11 @@
                 return;
             }
 
-            const sofa5StartX = (700 - (3 * 60 + 2 * seatPadding)) / 2;
+            const sofa5StartX = (canvas.width - (3 * 60 + 2 * seatPadding)) / 2;
             for (let col = 0; col < 3; col++) {
                 const seatX = sofa5StartX + col * (60 + seatPadding);
-                const y = 360;
-                if (x >= seatX && x <= seatX + 60 && y >= y && y <= y + 25) {
+                const seatY = 360;
+                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
                     if (seats.sofas[4][col] === 'free') showSeatModal('sofa', 4, col, 2, 3);
                     else if (seats.sofas[4][col] === 'selected') {
                         seats.sofas[4][col] = 'free';
@@ -528,7 +535,7 @@
                 }
                 return;
             }
-            if (x >= 570 && x <= 650 && y >= 360 && y <= 390) {
+            if (x >= canvas.width - 130 && x <= canvas.width - 50 && y >= 360 && y <= 390) {
                 if (seats.cornerSofas[1][1] === 'free') showSeatModal('cornerSofa', 1, 1, 4, 6);
                 else if (seats.cornerSofas[1][1] === 'selected') {
                     seats.cornerSofas[1][1] = 'free';
