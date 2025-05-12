@@ -10,11 +10,12 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background: linear-gradient(to bottom, #ffeb3b, #4fc3f7); /* Солнечный пляж: жёлтый → голубой */
+            background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center/cover;
         }
         h1, h2 {
             text-align: center;
-            color: #333;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
         .seating-chart {
             margin: 20px 0;
@@ -23,7 +24,7 @@
         canvas {
             border: 1px solid #ccc;
             animation: fadeIn 1s ease-in;
-            background-color: rgba(255, 255, 255, 0.8); /* Полупрозрачный белый фон для canvas */
+            background-color: rgba(255, 255, 255, 0.9); /* Полупрозрачный белый фон */
         }
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -35,9 +36,13 @@
             gap: 10px;
             max-width: 400px;
             margin: 20px auto;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
         }
         label {
             font-weight: bold;
+            color: #333;
         }
         select, input, button {
             padding: 10px;
@@ -58,15 +63,21 @@
         button:hover {
             background-color: #218838;
         }
-        #payment-message {
+        #payment-message, #seat-message {
             color: #333;
             text-align: center;
             margin-top: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
         }
         #selected-seats {
             text-align: center;
             font-size: 16px;
             color: #333;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -76,6 +87,7 @@
     <div class="seating-chart">
         <canvas id="seatingCanvas" width="500" height="300"></canvas>
     </div>
+    <div id="seat-message"></div>
     <div id="selected-seats">Выбрано мест: 0 (0 RUB)</div>
     <form id="booking-form">
         <label for="date">Дата:</label>
@@ -157,6 +169,7 @@
             const total = count * 100; // 100 RUB за место
             document.getElementById('selected-seats').textContent = `Выбрано мест: ${count} (${total} RUB)`;
             document.getElementById('pay-button').textContent = `Оплатить (${total} RUB)`;
+            document.getElementById('seat-message').textContent = '';
         }
 
         // Загрузка фильмов и времени
@@ -206,6 +219,13 @@
         timeSelect.addEventListener('change', loadSeats);
 
         canvas.addEventListener('click', (e) => {
+            const date = dateInput.value;
+            const movie = movieSelect.value;
+            const time = timeSelect.value;
+            if (!date || !movie || !time) {
+                document.getElementById('seat-message').textContent = 'Пожалуйста, выберите дату, фильм и время';
+                return;
+            }
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;

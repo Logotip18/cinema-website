@@ -10,11 +10,12 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background: linear-gradient(to bottom, #ffeb3b, #4fc3f7); /* Солнечный пляж */
+            background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center/cover;
         }
         h1, h2 {
             text-align: center;
-            color: #333;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
         form {
             display: flex;
@@ -22,9 +23,13 @@
             gap: 10px;
             max-width: 400px;
             margin: 20px auto;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
         }
         label {
             font-weight: bold;
+            color: #333;
         }
         input, select, button {
             padding: 10px;
@@ -54,13 +59,16 @@
         li {
             margin: 10px 0;
             padding: 10px;
-            background-color: rgba(255, 255, 255, 0.8);
+            background-color: rgba(255, 255, 255, 0.9);
             border: 1px solid #ccc;
             border-radius: 5px;
         }
         .auth-form {
             text-align: center;
             margin-top: 50px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
         }
         .auth-form.hidden {
             display: none;
