@@ -1,11 +1,11 @@
 const admin = require('firebase-admin');
 
-     if (!admin.apps.length) {
-       admin.initializeApp({
-         credential: admin.credential.cert({
-           projectId: "lvg-kino",
-           clientEmail: "firebase-adminsdk-fbsvc@lvg-kino.iam.gserviceaccount.com",
-           privateKey: `-----BEGIN PRIVATE KEY-----
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: "lvg-kino",
+          clientEmail: "firebase-adminsdk-fbsvc@lvg-kino.iam.gserviceaccount.com",
+          privateKey: `-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDicbYlUD63sxd9
 kfROilFB9BUvQjfmJVDmo+OOL80W3Aq3cSwUPqyzWE9HXg+odYHdQEQIFtBZRGCW
 NJ5cOkL/8OxATyYBDjsua4ju96kbTVENUBFVCkjnF3j3XR8gOCFQ+ieY3HZJc9UE
@@ -32,58 +32,89 @@ enEDfoIAteWu4JFDBcUQxmYMCKBxo/Aie+LrA9oAJwKBgGKzjfWaXzNvLSjDc+xW
 afh9e8fR8JalNhWov4UBmDKsFkckPQuMrckLdnOBWY7udxqdGxnVEfL7rWWLYpWl
 D7k6atCG3RmSGg8jLDjL0RjPEmKPAJTz2kQNfHGr2lr+LnWCTb/qluBDtNSbKXhQ
 i3zbpSfypHXXuugnDKoRXykm
------END PRIVATE KEY-----
-`
-         }),
-       });
-     }
+-----END PRIVATE KEY-----`
+        }),
+      });
+    }
 
-     const db = admin.firestore();
+    const db = admin.firestore();
 
-     exports.handler = async (event, context) => {
-       try {
-         if (event.httpMethod === 'GET') {
-           const { movie, date, time } = event.queryStringParameters || {};
-           if (!movie || !date || !time) {
-             return {
-               statusCode: 400,
-               body: JSON.stringify({ message: 'Missing required query parameters: movie, date, time' }),
-             };
-           }
-           const sessionKey = `seats_${movie}_${date}_${time}`;
-           const snapshot = await db.collection('bookings').doc(sessionKey).get();
-           const bookings = snapshot.exists ? snapshot.data().seats : [];
-           return {
-             statusCode: 200,
-             body: JSON.stringify(bookings),
-           };
-         }
+    exports.handler = async (event, context) => {
+      try {
+        if (event.httpMethod === 'GET') {
+          const { movie, date, time } = event.queryStringParameters || {};
+          if (!movie || !date || !time) {
+            return {
+              statusCode: 400,
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST',
+                'Access-Control-Allow-Headers': 'Content-Type',
+              },
+              body: JSON.stringify({ message: 'Missing required query parameters: movie, date, time' }),
+            };
+          }
+          const sessionKey = `seats_${movie}_${date}_${time}`;
+          const snapshot = await db.collection('bookings').doc(sessionKey).get();
+          const bookings = snapshot.exists ? snapshot.data().seats : [];
+          console.log('Fetched bookings for session:', sessionKey, bookings); // Отладочный вывод
+          return {
+            statusCode: 200,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST',
+              'Access-Control-Allow-Headers': 'Content-Type',
+            },
+            body: JSON.stringify(bookings),
+          };
+        }
 
-         if (event.httpMethod === 'POST') {
-           const { movie, date, time, seats } = JSON.parse(event.body);
-           if (!movie || !date || !time || !seats) {
-             return {
-               statusCode: 400,
-               body: JSON.stringify({ message: 'Missing required fields: movie, date, time, seats' }),
-             };
-           }
-           const sessionKey = `seats_${movie}_${date}_${time}`;
-           await db.collection('bookings').doc(sessionKey).set({ seats }, { merge: true });
-           return {
-             statusCode: 200,
-             body: JSON.stringify({ message: 'Booking saved' }),
-           };
-         }
+        if (event.httpMethod === 'POST') {
+          const { movie, date, time, seats } = JSON.parse(event.body);
+          if (!movie || !date || !time || !seats) {
+            return {
+              statusCode: 400,
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST',
+                'Access-Control-Allow-Headers': 'Content-Type',
+              },
+              body: JSON.stringify({ message: 'Missing required fields: movie, date, time, seats' }),
+            };
+          }
+          const sessionKey = `seats_${movie}_${date}_${time}`;
+          await db.collection('bookings').doc(sessionKey).set({ seats }, { merge: true });
+          console.log('Saved bookings for session:', sessionKey, seats); // Отладочный вывод
+          return {
+            statusCode: 200,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST',
+              'Access-Control-Allow-Headers': 'Content-Type',
+            },
+            body: JSON.stringify({ message: 'Booking saved' }),
+          };
+        }
 
-         return {
-           statusCode: 400,
-           body: JSON.stringify({ message: 'Метод не поддерживается' }),
-         };
-       } catch (error) {
-         console.log('Server error:', error);
-         return {
-           statusCode: 500,
-           body: JSON.stringify({ message: 'Internal Server Error', error: error.message }),
-         };
-       }
-     };
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          },
+          body: JSON.stringify({ message: 'Метод не поддерживается' }),
+        };
+      } catch (error) {
+        console.log('Server error:', error);
+        return {
+          statusCode: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          },
+          body: JSON.stringify({ message: 'Internal Server Error', error: error.message }),
+        };
+      }
+    };
