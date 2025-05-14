@@ -249,6 +249,16 @@
         const movieSelect = document.getElementById('movie');
         const timeSelect = document.getElementById('time');
 
+        async function fetchSessions() {
+            try {
+                const response = await fetch('https://lvgkino.ru/.netlify/functions/sessions');
+                return await response.json();
+            } catch (error) {
+                console.error('Ошибка загрузки сеансов:', error);
+                return [];
+            }
+        }
+
         function updateMovies() {
             const date = dateInput.value;
             movieSelect.disabled = !date;
@@ -256,22 +266,22 @@
             timeSelect.disabled = true;
             timeSelect.innerHTML = '<option value="">Выберите время</option>';
             if (date) {
-                const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
-                console.log('Loaded sessions (updateMovies):', sessions, 'on domain:', window.location.hostname);
-                const movies = [...new Set(sessions.filter(s => s.date === date).map(s => s.movie))];
-                movies.forEach(movie => {
-                    const option = document.createElement('option');
-                    option.value = movie;
-                    option.textContent = movie;
-                    movieSelect.appendChild(option);
+                fetchSessions().then(sessions => {
+                    const movies = [...new Set(sessions.filter(s => s.date === date).map(s => s.movie))];
+                    movies.forEach(movie => {
+                        const option = document.createElement('option');
+                        option.value = movie;
+                        option.textContent = movie;
+                        movieSelect.appendChild(option);
+                    });
+                    if (movies.length > 0) {
+                        movieSelect.value = movies[0];
+                        updateTimes();
+                    } else {
+                        document.getElementById('seat-message').textContent = 'Нет фильмов для этой даты. Добавьте их через админ-панель.';
+                    }
+                    renderSessionsList();
                 });
-                if (movies.length > 0) {
-                    movieSelect.value = movies[0];
-                    updateTimes();
-                } else {
-                    document.getElementById('seat-message').textContent = 'Нет фильмов для этой даты. Добавьте их через админ-панель.';
-                }
-                renderSessionsList();
             }
             loadSeats();
         }
@@ -282,20 +292,21 @@
             timeSelect.disabled = !movie;
             timeSelect.innerHTML = '<option value="">Выберите время</option>';
             if (movie && date) {
-                const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
-                const times = sessions.filter(s => s.date === date && s.movie === movie).map(s => s.time);
-                times.forEach(time => {
-                    const option = document.createElement('option');
-                    option.value = time;
-                    option.textContent = time;
-                    timeSelect.appendChild(option);
+                fetchSessions().then(sessions => {
+                    const times = sessions.filter(s => s.date === date && s.movie === movie).map(s => s.time);
+                    times.forEach(time => {
+                        const option = document.createElement('option');
+                        option.value = time;
+                        option.textContent = time;
+                        timeSelect.appendChild(option);
+                    });
+                    if (times.length > 0) {
+                        timeSelect.value = times[0];
+                        loadSeats();
+                    } else {
+                        document.getElementById('seat-message').textContent = 'Нет сеансов для этого фильма. Добавьте их через админ-панель.';
+                    }
                 });
-                if (times.length > 0) {
-                    timeSelect.value = times[0];
-                    loadSeats();
-                } else {
-                    document.getElementById('seat-message').textContent = 'Нет сеансов для этого фильма. Добавьте их через админ-панель.';
-                }
             }
             renderSessionsList();
             loadSeats();
@@ -305,52 +316,50 @@
             const sessionsList = document.getElementById('sessions');
             const showAllButton = document.getElementById('show-all-sessions');
             sessionsList.innerHTML = '';
-            let sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
-            console.log('Rendering sessions:', sessions, 'from localStorage:', localStorage.getItem('sessions'), 'on domain:', window.location.hostname);
-            if (!sessions || sessions.length === 0) {
-                console.warn('No sessions found, forcing reload check');
-                sessions = JSON.parse(localStorage.getItem('sessions') || '[]'); // Повторная проверка
-                const li = document.createElement('li');
-                li.textContent = 'Сеансы не добавлены. Добавьте их через админ-панель.';
-                sessionsList.appendChild(li);
-                showAllButton.style.display = 'none';
-                return;
-            }
-            showAllButton.style.display = 'block';
-            const now = new Date('2025-05-12T00:00:00');
-            let filteredSessions = sessions.map(session => ({
-                ...session,
-                dateTime: new Date(`${session.date}T${session.time}:00`)
-            })).filter(session => {
-                const sessionDate = new Date(session.date);
-                const today = new Date('2025-05-12');
-                return sessionDate >= today || (sessionDate.getTime() === today.getTime() && session.dateTime >= now);
-            }).sort((a, b) => a.dateTime - b.dateTime);
-            if (!showAll) {
-                filteredSessions = filteredSessions.slice(0, 5);
-                showAllButton.textContent = 'Показать все';
-            } else {
-                showAllButton.textContent = 'Скрыть';
-            }
-            const sessionsByDate = {};
-            filteredSessions.forEach(session => {
-                if (!sessionsByDate[session.date]) sessionsByDate[session.date] = [];
-                sessionsByDate[session.date].push(session);
-            });
-            for (const date in sessionsByDate) {
-                const h4 = document.createElement('h4');
-                h4.textContent = date;
-                sessionsList.appendChild(h4);
-                sessionsByDate[date].forEach(session => {
+            fetchSessions().then(sessions => {
+                if (!sessions || sessions.length === 0) {
                     const li = document.createElement('li');
-                    li.dataset.movie = session.movie;
-                    li.dataset.date = session.date;
-                    li.dataset.time = session.time;
-                    li.textContent = `${session.movie} | ${session.time}`;
+                    li.textContent = 'Сеансы не добавлены. Добавьте их через админ-панель.';
                     sessionsList.appendChild(li);
+                    showAllButton.style.display = 'none';
+                    return;
+                }
+                showAllButton.style.display = 'block';
+                const now = new Date('2025-05-12T00:00:00');
+                let filteredSessions = sessions.map(session => ({
+                    ...session,
+                    dateTime: new Date(`${session.date}T${session.time}:00`)
+                })).filter(session => {
+                    const sessionDate = new Date(session.date);
+                    const today = new Date('2025-05-12');
+                    return sessionDate >= today || (sessionDate.getTime() === today.getTime() && session.dateTime >= now);
+                }).sort((a, b) => a.dateTime - b.dateTime);
+                if (!showAll) {
+                    filteredSessions = filteredSessions.slice(0, 5);
+                    showAllButton.textContent = 'Показать все';
+                } else {
+                    showAllButton.textContent = 'Скрыть';
+                }
+                const sessionsByDate = {};
+                filteredSessions.forEach(session => {
+                    if (!sessionsByDate[session.date]) sessionsByDate[session.date] = [];
+                    sessionsByDate[session.date].push(session);
                 });
-            }
-            updateActiveSession();
+                for (const date in sessionsByDate) {
+                    const h4 = document.createElement('h4');
+                    h4.textContent = date;
+                    sessionsList.appendChild(h4);
+                    sessionsByDate[date].forEach(session => {
+                        const li = document.createElement('li');
+                        li.dataset.movie = session.movie;
+                        li.dataset.date = session.date;
+                        li.dataset.time = session.time;
+                        li.textContent = `${session.movie} | ${session.time}`;
+                        sessionsList.appendChild(li);
+                    });
+                }
+                updateActiveSession();
+            });
         }
 
         function updateActiveSession() {
@@ -381,21 +390,7 @@
             renderSessionsList();
         });
 
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'sessions_updated') {
-                console.log('Storage updated, refreshing sessions list');
-                renderSessionsList();
-            }
-        });
-
-        window.addEventListener('resize', () => {
-            console.log('Window resized, refreshing sessions list');
-            renderSessionsList();
-            drawSeats();
-        });
-
         window.addEventListener('load', () => {
-            console.log('Page loaded, forcing sessions refresh on domain:', window.location.hostname);
             renderSessionsList();
         });
 
