@@ -257,7 +257,7 @@
             timeSelect.innerHTML = '<option value="">Выберите время</option>';
             if (date) {
                 const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
-                console.log('Loaded sessions:', sessions); // Отладка
+                console.log('Loaded sessions (updateMovies):', sessions, 'on domain:', window.location.hostname);
                 const movies = [...new Set(sessions.filter(s => s.date === date).map(s => s.movie))];
                 movies.forEach(movie => {
                     const option = document.createElement('option');
@@ -305,9 +305,11 @@
             const sessionsList = document.getElementById('sessions');
             const showAllButton = document.getElementById('show-all-sessions');
             sessionsList.innerHTML = '';
-            const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
-            console.log('Rendering sessions:', sessions); // Отладка
-            if (sessions.length === 0) {
+            let sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+            console.log('Rendering sessions:', sessions, 'from localStorage:', localStorage.getItem('sessions'), 'on domain:', window.location.hostname);
+            if (!sessions || sessions.length === 0) {
+                console.warn('No sessions found, forcing reload check');
+                sessions = JSON.parse(localStorage.getItem('sessions') || '[]'); // Повторная проверка
                 const li = document.createElement('li');
                 li.textContent = 'Сеансы не добавлены. Добавьте их через админ-панель.';
                 sessionsList.appendChild(li);
@@ -380,7 +382,21 @@
         });
 
         window.addEventListener('storage', (e) => {
-            if (e.key === 'sessions_updated') renderSessionsList();
+            if (e.key === 'sessions_updated') {
+                console.log('Storage updated, refreshing sessions list');
+                renderSessionsList();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            console.log('Window resized, refreshing sessions list');
+            renderSessionsList();
+            drawSeats();
+        });
+
+        window.addEventListener('load', () => {
+            console.log('Page loaded, forcing sessions refresh on domain:', window.location.hostname);
+            renderSessionsList();
         });
 
         dateInput.addEventListener('change', updateMovies);
