@@ -3,46 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ-панель LVG Kino</title>
+    <title>Админка - LVG Kino</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-        form { display: flex; flex-direction: column; gap: 10px; }
-        label { font-weight: bold; }
-        input, button { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
-        button { background-color: #007bff; color: white; border: none; cursor: pointer; }
-        button:hover { background-color: #0056b3; }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        h1 { color: #333; }
+        #sessions-list, #bookings-list { list-style-type: none; padding: 0; }
+        li { padding: 10px; margin: 5px 0; background-color: #fff; border: 1px solid #ddd; cursor: pointer; }
+        li:hover { background-color: #e0e0e0; }
+        .selected { background-color: #d0d0d0; font-weight: bold; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input, button { padding: 8px; margin-right: 10px; }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
     </style>
 </head>
 <body>
-    <h1>Админ-панель LVG Kino</h1>
-    <form id="session-form">
-        <label for="date">Дата:</label>
-        <input type="date" id="date" required>
+    <h1>Админка LVG Kino</h1>
+
+    <div class="form-group">
         <label for="movie">Фильм:</label>
         <input type="text" id="movie" required>
-        <label for="time">Время:</label>
+    </div>
+    <div class="form-group">
+        <label for="date">Дата (YYYY-MM-DD):</label>
+        <input type="date" id="date" required>
+    </div>
+    <div class="form-group">
+        <label for="time">Время (HH:MM):</label>
         <input type="time" id="time" required>
-        <button type="submit">Добавить сеанс</button>
-    </form>
+    </div>
+    <button onclick="addSession()">Добавить сеанс</button>
+
+    <h2>Список сеансов</h2>
+    <ul id="sessions-list"></ul>
+
+    <h2>Бронирования выбранного сеанса</h2>
+    <ul id="bookings-list"></ul>
+
     <script>
-        document.getElementById('session-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const date = document.getElementById('date').value;
-            const movie = document.getElementById('movie').value;
-            const time = document.getElementById('time').value;
+        let selectedSession = null;
+
+        async function fetchSessions() {
             try {
-                const response = await fetch('https://lvgkino.ru/.netlify/functions/sessions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ date, movie, time })
-                });
+                const response = await fetch('https://lvgkino.ru/.netlify/functions/sessions');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-                alert('Сеанс добавлен: ' + JSON.stringify(data));
-                document.getElementById('session-form').reset();
+                if (!Array.isArray(data)) {
+                    console.error('Unexpected response format:', data);
+                    return [];
+                }
+                console.log('Fetched sessions:', data);
+                return data;
             } catch (error) {
-                alert('Ошибка: ' + error.message);
+                console.error('Ошибка загрузки сеансов:', error);
+                return [];
             }
-        });
+        }
+
+        async function fetchBookings(movie, date, time) {
+            try {
+                const response = await fetch(`https://lvgkino.ru/.netlify/functions/bookings?movie=${encodeURIComponent(movie)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const bookings = await response.json();
+                console.log('Fetched bookings:', bookings);
+                return bookings;
+            } catch (error) {
+                console.error('Ошибка загрузки бронирований:', error);
+                return [];
+            }
+        }
+
+        async function renderSessionsList() {
+            const sessionsList = document.getElementById('sessions-list');
+            sessionsList.innerHTML = '';
+            const sessions = await fetchSessions();
+            if (sessions.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = 'Сеансов не добавлено.';
+                sessionsList.appendChild(li);
+                return;
+            }
+            sessions.forEach(session => {
+                const li = document.createElement('li');
+                li.textContent = `${session.movie} - ${session.date} в ${session.time} (ID: ${session.id})`;
+                li.addEventListener('click', () => selectSession(session));
+                sessionsList.appendChild(li);
+            });
+        }
+
+        function selectSession(session) {
+            selectedSession = session;
+            document.querySelectorAll('#sessions-list li').forEach(li => {
+                li.classList.toggle('selected', li.textContent.includes(session.id));
+            });
+            renderBookingsList();
+        }
+
+        async function renderBookingsList() {
+            const bookingsList = document.getElementById('bookings-list');
+            bookingsList.innerHTML = '';
+            if (!selectedSession) {
+                const li = document.createElement('li');
+                li.textContent = 'Выберите сеанс для просмотра бронирований.';
+                bookingsList.appendChild(li);
+                return;
+            }
+            const bookings = await fetchBookings(selectedSession.movie, selectedSession.date, selectedSession.time);
+            if (bookings.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = 'Бронирований нет.';
+                bookingsList.appendChild(li);
+                return;
+            }
+            bookings.forEach(booking => {
+                const li = document.createElement('li');
+                li.textContent = `Место: ${booking.type}, Ряд: ${booking.row}, Колонка: ${booking.col}`;
+                bookingsList.appendChild(li);
+            });
+        }
+
+        async function addSession() {
+            const movie = document.getElementById('movie').value;
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+
+            if (!movie || !date || !time) {
+                alert('Заполните все поля!');
+                return;
+            }
+
+            const response = await fetch('https://lvgkino.ru/.netlify/functions/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ movie, date, time })
+            });
+
+            if (response.ok) {
+                alert('Сеанс успешно добавлен!');
+                document.getElementById('movie').value = '';
+                document.getElementById('date').value = '';
+                document.getElementById('time').value = '';
+                renderSessionsList();
+            } else {
+                const error = await response.json();
+                alert('Ошибка: ' + (error.message || 'Не удалось добавить сеанс'));
+            }
+        }
+
+        // Автоматическая загрузка сеансов каждые 5 секунд для синхронизации
+        setInterval(renderSessionsList, 5000);
+
+        // Инициализация при загрузке страницы
+        window.onload = () => {
+            renderSessionsList();
+        };
     </script>
 </body>
 </html>

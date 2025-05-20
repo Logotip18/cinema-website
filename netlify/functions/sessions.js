@@ -1,11 +1,11 @@
 const admin = require('firebase-admin');
 
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: "lvg-kino",
-          clientEmail: "firebase-adminsdk-fbsvc@lvg-kino.iam.gserviceaccount.com",
-          privateKey: `-----BEGIN PRIVATE KEY-----
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: "lvg-kino",
+      clientEmail: "firebase-adminsdk-fbsvc@lvg-kino.iam.gserviceaccount.com",
+      privateKey: `-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDicbYlUD63sxd9
 kfROilFB9BUvQjfmJVDmo+OOL80W3Aq3cSwUPqyzWE9HXg+odYHdQEQIFtBZRGCW
 NJ5cOkL/8OxATyYBDjsua4ju96kbTVENUBFVCkjnF3j3XR8gOCFQ+ieY3HZJc9UE
@@ -33,56 +33,32 @@ afh9e8fR8JalNhWov4UBmDKsFkckPQuMrckLdnOBWY7udxqdGxnVEfL7rWWLYpWl
 D7k6atCG3RmSGg8jLDjL0RjPEmKPAJTz2kQNfHGr2lr+LnWCTb/qluBDtNSbKXhQ
 i3zbpSfypHXXuugnDKoRXykm
 -----END PRIVATE KEY-----`
-        }),
-      });
+    }),
+  });
+}
+
+const db = admin.firestore();
+
+exports.handler = async (event, context) => {
+  try {
+    if (event.httpMethod === 'GET') {
+      const snapshot = await db.collection('sessions').get();
+      const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log('Fetched sessions:', sessions);
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+        body: JSON.stringify(sessions),
+      };
     }
 
-    const db = admin.firestore();
-
-    exports.handler = async (event, context) => {
-      try {
-        if (event.httpMethod === 'GET') {
-          const snapshot = await db.collection('sessions').get();
-          const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          console.log('Fetched sessions:', sessions); // Отладочный вывод
-          return {
-            statusCode: 200,
-            headers: {
-              'Access-Control-Allow-Origin': '*', // Разрешить CORS
-              'Access-Control-Allow-Methods': 'GET, POST',
-              'Access-Control-Allow-Headers': 'Content-Type',
-            },
-            body: JSON.stringify(sessions),
-          };
-        }
-
-        if (event.httpMethod === 'POST') {
-          const { movie, date, time } = JSON.parse(event.body);
-          if (!movie || !date || !time) {
-            return {
-              statusCode: 400,
-              headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST',
-                'Access-Control-Allow-Headers': 'Content-Type',
-              },
-              body: JSON.stringify({ message: 'Missing required fields: movie, date, time' }),
-            };
-          }
-          const newSession = { movie, date, time, createdAt: Date.now() };
-          const docRef = await db.collection('sessions').add(newSession);
-          console.log('Added session:', { id: docRef.id, ...newSession }); // Отладочный вывод
-          return {
-            statusCode: 200,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST',
-              'Access-Control-Allow-Headers': 'Content-Type',
-            },
-            body: JSON.stringify({ id: docRef.id, ...newSession }),
-          };
-        }
-
+    if (event.httpMethod === 'POST') {
+      const { movie, date, time } = JSON.parse(event.body);
+      if (!movie || !date || !time) {
         return {
           statusCode: 400,
           headers: {
@@ -90,18 +66,42 @@ i3zbpSfypHXXuugnDKoRXykm
             'Access-Control-Allow-Methods': 'GET, POST',
             'Access-Control-Allow-Headers': 'Content-Type',
           },
-          body: JSON.stringify({ message: 'Метод не поддерживается' }),
-        };
-      } catch (error) {
-        console.log('Server error:', error);
-        return {
-          statusCode: 500,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          },
-          body: JSON.stringify({ message: 'Internal Server Error', error: error.message }),
+          body: JSON.stringify({ message: 'Missing required fields: movie, date, time' }),
         };
       }
+      const newSession = { movie, date, time, createdAt: Date.now() };
+      const docRef = await db.collection('sessions').add(newSession);
+      console.log('Added session:', { id: docRef.id, ...newSession });
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+        body: JSON.stringify({ id: docRef.id, ...newSession }),
+      };
+    }
+
+    return {
+      statusCode: 400,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+      body: JSON.stringify({ message: 'Method not supported' }),
     };
+  } catch (error) {
+    console.log('Server error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+      body: JSON.stringify({ message: 'Internal Server Error', error: error.message }),
+    };
+  }
+};

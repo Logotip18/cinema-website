@@ -3,604 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LVG Kino - Бронирование билетов</title>
+    <title>LVG Kino</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center/cover; }
-        h1, h2, h4 { text-align: center; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
-        h4 { font-size: 1.2em; font-weight: bold; margin: 10px 0; }
-        .seating-container { display: flex; gap: 20px; background-color: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; margin: 20px 0; }
-        .seating-chart { flex: 1; text-align: center; }
-        canvas { border: 1px solid #ccc; animation: fadeIn 1s ease-in; background-color: #fff; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .sessions-list { flex: 1; max-width: 300px; }
-        .sessions-list h3 { margin: 0 0 10px; color: #333; }
-        .sessions-list ul { list-style: none; padding: 0; }
-        .sessions-list h4 { margin: 15px 0 5px; padding: 5px; background-color: rgba(0,123,255,0.1); border-radius: 5px; }
-        .sessions-list li { padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; font-size: 1em; }
-        .sessions-list li:hover { background-color: #f0f0f0; }
-        .sessions-list li.active { background-color: #d4edda; border-color: #28a745; }
-        .sessions-list button { width: 100%; padding: 10px; margin-top: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .sessions-list button:hover { background-color: #0056b3; }
-        form { display: flex; flex-direction: column; gap: 10px; max-width: 400px; margin: 20px auto; background-color: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; }
-        label { font-weight: bold; color: #333; }
-        select, input, button { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
-        select:disabled, input:disabled { background-color: #f0f0f0; cursor: not-allowed; }
-        #pay-button { background-color: #28a745; color: white; cursor: pointer; border: none; }
-        #pay-button:hover { background-color: #218838; }
-        #payment-message, #seat-message { color: #333; text-align: center; margin-top: 10px; background-color: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px; }
-        #selected-seats { text-align: center; font-size: 16px; color: #333; background-color: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; }
-        .modal-content { background-color: white; padding: 20px; border-radius: 5px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
-        .modal-content button { margin: 10px; padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .modal-content button:hover { background-color: #218838; }
-        @media (max-width: 768px) { .seating-container { flex-direction: column; } .sessions-list { max-width: 100%; order: 1; } .seating-chart { order: 2; } canvas { width: 100%; height: auto; } .seating-chart h2 { font-size: 1.2em; } .sessions-list li { font-size: 0.9em; } }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        h1 { color: #333; }
+        #session-list { list-style-type: none; padding: 0; }
+        #session-list li { padding: 10px; margin: 5px 0; background-color: #fff; border: 1px solid #ddd; cursor: pointer; }
+        #session-list li:hover { background-color: #e0e0e0; }
+        .selected { background-color: #d0d0d0; font-weight: bold; }
+        #seats-container { margin-top: 20px; }
+        .seat { display: inline-block; width: 40px; height: 40px; margin: 5px; background-color: #ccc; text-align: center; line-height: 40px; cursor: pointer; }
+        .seat.booked { background-color: #ff4d4d; cursor: not-allowed; }
+        .seat.selected { background-color: #4CAF50; color: white; }
+        button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
     </style>
 </head>
 <body>
-    <h1>LVG Kino - Бронирование билетов</h1>
-    <div class="seating-container">
-        <div class="seating-chart">
-            <h2>Выберите места</h2>
-            <canvas id="seatingCanvas" width="700" height="600"></canvas>
-            <div id="seat-message"></div>
-            <div id="selected-seats">Выбрано мест: 0 (0 RUB)</div>
-        </div>
-        <div class="sessions-list">
-            <h3>Ближайшие сеансы</h3>
-            <ul id="sessions"></ul>
-            <button id="show-all-sessions">Показать все</button>
-        </div>
+    <h1>LVG Kino</h1>
+
+    <h2>Выберите сеанс</h2>
+    <ul id="session-list"></ul>
+
+    <div id="seats-container" style="display: none;">
+        <h3>Доступные места</h3>
+        <div id="seats"></div>
+        <button onclick="bookSeats()">Забронировать</button>
     </div>
-    <form id="booking-form">
-        <label for="date">Дата:</label>
-        <input type="date" id="date" required>
-        <label for="movie">Фильм:</label>
-        <select id="movie" disabled required>
-            <option value="">Выберите фильм</option>
-        </select>
-        <label for="time">Время:</label>
-        <select id="time" disabled required>
-            <option value="">Выберите время</option>
-        </select>
-        <label for="name">Имя:</label>
-        <input type="text" id="name" required>
-        <label for="email">Email:</label>
-        <input type="email" id="email" required>
-        <button type="button" id="pay-button">Оплатить (0 RUB)</button>
-    </form>
-    <div id="payment-message"></div>
-    <div id="seat-modal" class="modal">
-        <div class="modal-content">
-            <h3>Выберите количество человек</h3>
-            <div id="seat-options"></div>
-            <button id="cancel-seat">Отмена</button>
-        </div>
-    </div>
+
     <script>
-        const canvas = document.getElementById('seatingCanvas');
-        const ctx = canvas.getContext('2d');
-        const seatSize = 20;
-        const seatPadding = 15;
+        let activeSessions = [];
+        let activeSessionIndex = -1;
         let selectedSeats = [];
-        let showAll = false;
-
-        const seats = {
-            poufs: Array(1).fill().map(() => Array(8).fill('free')),
-            sofas: [Array(5).fill('free'), Array(6).fill('free'), Array(6).fill('free'), Array(4).fill('free'), Array(3).fill('free')],
-            cornerSofas: [Array(2).fill('free'), Array(2).fill('free')]
-        };
-
-        const seatCounts = {};
-
-        function drawPouf(x, y, status) {
-            ctx.fillStyle = status === 'free' ? '#00cccc' : status === 'selected' ? 'yellow' : 'red';
-            ctx.beginPath();
-            ctx.arc(x, y, seatSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        function drawSofa(x, y, width, height, status) {
-            ctx.fillStyle = status === 'free' ? '#00cc00' : status === 'selected' ? 'yellow' : 'red';
-            ctx.fillRect(x, y, width, height);
-        }
-
-        function drawCornerSofa(x, y, width, height, status) {
-            ctx.fillStyle = status === 'free' ? '#8B4513' : status === 'selected' ? 'yellow' : 'red';
-            ctx.fillRect(x, y, width, height);
-        }
-
-        function drawSeats() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = 'gray';
-            ctx.fillRect(50, 20, canvas.width - 100, 20);
-            ctx.fillStyle = 'white';
-            ctx.font = '12px Arial';
-            ctx.fillText('Экран', (canvas.width - 40) / 2, 32);
-
-            const poufStartX = (canvas.width - (8 * seatSize + 7 * seatPadding)) / 2;
-            for (let col = 0; col < 8; col++) {
-                const x = poufStartX + col * (seatSize + seatPadding);
-                const y = 70;
-                drawPouf(x, y, seats.poufs[0][col]);
-                ctx.fillStyle = 'black';
-                ctx.font = '8px Arial';
-                ctx.fillText(`0-${col + 1}`, x - 10, y + 5);
-            }
-
-            const sofa1StartX = (canvas.width - (5 * 60 + 4 * seatPadding)) / 2;
-            for (let col = 0; col < 5; col++) {
-                const x = sofa1StartX + col * (60 + seatPadding);
-                const y = 120;
-                drawSofa(x, y, 60, 25, seats.sofas[0][col]);
-                ctx.fillStyle = 'black';
-                ctx.fillText(`1-${col + 1}`, x + 20, y + 15);
-            }
-
-            const sofa2StartX = (canvas.width - (6 * 60 + 5 * seatPadding)) / 2;
-            for (let col = 0; col < 6; col++) {
-                const x = sofa2StartX + col * (60 + seatPadding);
-                const y = 180;
-                drawSofa(x, y, 60, 25, seats.sofas[1][col]);
-                ctx.fillStyle = 'black';
-                ctx.fillText(`2-${col + 1}`, x + 20, y + 15);
-            }
-
-            const sofa3StartX = (canvas.width - (6 * 60 + 5 * seatPadding)) / 2;
-            for (let col = 0; col < 6; col++) {
-                const x = sofa3StartX + col * (60 + seatPadding);
-                const y = 240;
-                drawSofa(x, y, 60, 25, seats.sofas[2][col]);
-                ctx.fillStyle = 'black';
-                ctx.fillText(`3-${col + 1}`, x + 20, y + 15);
-            }
-
-            const sofa4StartX = (canvas.width - (4 * 60 + 3 * seatPadding)) / 2;
-            for (let col = 0; col < 4; col++) {
-                const x = sofa4StartX + col * (60 + seatPadding);
-                const y = 300;
-                drawSofa(x, y, 60, 25, seats.sofas[3][col]);
-                ctx.fillStyle = 'black';
-                ctx.fillText(`4-${col + 1}`, x + 20, y + 15);
-            }
-            drawCornerSofa(50, 300, 80, 30, seats.cornerSofas[0][0]);
-            ctx.fillStyle = 'white';
-            ctx.fillText('4-5', 75, 320);
-            drawCornerSofa(canvas.width - 130, 300, 80, 30, seats.cornerSofas[0][1]);
-            ctx.fillStyle = 'white';
-            ctx.fillText('4-6', canvas.width - 105, 320);
-
-            const sofa5StartX = (canvas.width - (3 * 60 + 2 * seatPadding)) / 2;
-            for (let col = 0; col < 3; col++) {
-                const x = sofa5StartX + col * (60 + seatPadding);
-                const y = 360;
-                drawSofa(x, y, 60, 25, seats.sofas[4][col]);
-                ctx.fillStyle = 'black';
-                ctx.fillText(`5-${col + 1}`, x + 20, y + 15);
-            }
-            drawCornerSofa(50, 360, 80, 30, seats.cornerSofas[1][0]);
-            ctx.fillStyle = 'white';
-            ctx.fillText('5-4', 75, 380);
-            drawCornerSofa(canvas.width - 130, 360, 80, 30, seats.cornerSofas[1][1]);
-            ctx.fillStyle = 'white';
-            ctx.fillText('5-5', canvas.width - 105, 380);
-        }
-
-        function getSessionKey() {
-            const movie = document.getElementById('movie').value;
-            const date = document.getElementById('date').value;
-            const time = document.getElementById('time').value;
-            return `seats_${movie}_${date}_${time}`;
-        }
-
-        function loadSeats() {
-            seats.poufs = Array(1).fill().map(() => Array(8).fill('free'));
-            seats.sofas = [Array(5).fill('free'), Array(6).fill('free'), Array(6).fill('free'), Array(4).fill('free'), Array(3).fill('free')];
-            seats.cornerSofas = [Array(2).fill('free'), Array(2).fill('free')];
-            const savedSeats = JSON.parse(localStorage.getItem(getSessionKey()) || '[]');
-            savedSeats.forEach(seat => {
-                if (seat.type === 'pouf') seats.poufs[0][seat.col] = 'booked';
-                else if (seat.type === 'sofa') { seats.sofas[seat.row][seat.col] = 'booked'; seatCounts[`${seat.type}_${seat.row}_${seat.col}`] = seat.count; }
-                else if (seat.type === 'cornerSofa') { seats.cornerSofas[seat.row][seat.col] = 'booked'; seatCounts[`${seat.type}_${seat.row}_${seat.col}`] = seat.count; }
-            });
-            selectedSeats = [];
-            updateSelectedSeats();
-            drawSeats();
-            updateActiveSession();
-        }
-
-        function updateSelectedSeats() {
-            let totalSeats = 0, totalPrice = 0;
-            selectedSeats.forEach(seat => {
-                const key = `${seat.type}_${seat.row}_${seat.col}`;
-                const count = seatCounts[key] || 0;
-                if (seat.type === 'pouf') { totalSeats += 1; totalPrice += 450; }
-                else if (seat.type === 'sofa') { totalSeats += count; totalPrice += count * 450; }
-                else if (seat.type === 'cornerSofa') { totalSeats += count; totalPrice += count * 450; }
-            });
-            document.getElementById('selected-seats').textContent = `Выбрано мест: ${totalSeats} (${totalPrice} RUB)`;
-            document.getElementById('pay-button').textContent = `Оплатить (${totalPrice} RUB)`;
-            document.getElementById('seat-message').textContent = '';
-        }
-
-        function showSeatModal(type, row, col, min, max) {
-            const modal = document.getElementById('seat-modal');
-            const options = document.getElementById('seat-options');
-            options.innerHTML = '';
-            for (let i = min; i <= max; i++) {
-                const button = document.createElement('button');
-                button.textContent = `${i} человек`;
-                button.onclick = () => {
-                    const key = `${type}_${row}_${col}`;
-                    seatCounts[key] = i;
-                    if (type === 'sofa') seats.sofas[row][col] = 'selected';
-                    else if (type === 'cornerSofa') seats.cornerSofas[row][col] = 'selected';
-                    selectedSeats.push({ type, row, col });
-                    modal.style.display = 'none';
-                    updateSelectedSeats();
-                    drawSeats();
-                };
-                options.appendChild(button);
-            }
-            document.getElementById('cancel-seat').onclick = () => modal.style.display = 'none';
-            modal.style.display = 'block';
-        }
-
-        const dateInput = document.getElementById('date');
-        const movieSelect = document.getElementById('movie');
-        const timeSelect = document.getElementById('time');
 
         async function fetchSessions() {
             try {
                 const response = await fetch('https://lvgkino.ru/.netlify/functions/sessions');
-                return await response.json();
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                if (!Array.isArray(data)) {
+                    console.error('Unexpected response format:', data);
+                    return [];
+                }
+                console.log('Fetched sessions:', data);
+                return data;
             } catch (error) {
                 console.error('Ошибка загрузки сеансов:', error);
                 return [];
             }
         }
 
-        function updateMovies() {
-            const date = dateInput.value;
-            movieSelect.disabled = !date;
-            movieSelect.innerHTML = '<option value="">Выберите фильм</option>';
-            timeSelect.disabled = true;
-            timeSelect.innerHTML = '<option value="">Выберите время</option>';
-            if (date) {
-                fetchSessions().then(sessions => {
-                    const movies = [...new Set(sessions.filter(s => s.date === date).map(s => s.movie))];
-                    movies.forEach(movie => {
-                        const option = document.createElement('option');
-                        option.value = movie;
-                        option.textContent = movie;
-                        movieSelect.appendChild(option);
-                    });
-                    if (movies.length > 0) {
-                        movieSelect.value = movies[0];
-                        updateTimes();
-                    } else {
-                        document.getElementById('seat-message').textContent = 'Нет фильмов для этой даты. Добавьте их через админ-панель.';
-                    }
-                    renderSessionsList();
-                });
-            }
-            loadSeats();
-        }
-
-        function updateTimes() {
-            const date = dateInput.value;
-            const movie = movieSelect.value;
-            timeSelect.disabled = !movie;
-            timeSelect.innerHTML = '<option value="">Выберите время</option>';
-            if (movie && date) {
-                fetchSessions().then(sessions => {
-                    const times = sessions.filter(s => s.date === date && s.movie === movie).map(s => s.time);
-                    times.forEach(time => {
-                        const option = document.createElement('option');
-                        option.value = time;
-                        option.textContent = time;
-                        timeSelect.appendChild(option);
-                    });
-                    if (times.length > 0) {
-                        timeSelect.value = times[0];
-                        loadSeats();
-                    } else {
-                        document.getElementById('seat-message').textContent = 'Нет сеансов для этого фильма. Добавьте их через админ-панель.';
-                    }
-                });
-            }
-            renderSessionsList();
-            loadSeats();
-        }
-
-        function renderSessionsList() {
-            const sessionsList = document.getElementById('sessions');
-            const showAllButton = document.getElementById('show-all-sessions');
-            sessionsList.innerHTML = '';
-            fetchSessions().then(sessions => {
-                if (!sessions || sessions.length === 0) {
-                    const li = document.createElement('li');
-                    li.textContent = 'Сеансы не добавлены. Добавьте их через админ-панель.';
-                    sessionsList.appendChild(li);
-                    showAllButton.style.display = 'none';
-                    return;
-                }
-                showAllButton.style.display = 'block';
-                const now = new Date('2025-05-12T00:00:00');
-                let filteredSessions = sessions.map(session => ({
-                    ...session,
-                    dateTime: new Date(`${session.date}T${session.time}:00`)
-                })).filter(session => {
-                    const sessionDate = new Date(session.date);
-                    const today = new Date('2025-05-12');
-                    return sessionDate >= today || (sessionDate.getTime() === today.getTime() && session.dateTime >= now);
-                }).sort((a, b) => a.dateTime - b.dateTime);
-                if (!showAll) {
-                    filteredSessions = filteredSessions.slice(0, 5);
-                    showAllButton.textContent = 'Показать все';
-                } else {
-                    showAllButton.textContent = 'Скрыть';
-                }
-                const sessionsByDate = {};
-                filteredSessions.forEach(session => {
-                    if (!sessionsByDate[session.date]) sessionsByDate[session.date] = [];
-                    sessionsByDate[session.date].push(session);
-                });
-                for (const date in sessionsByDate) {
-                    const h4 = document.createElement('h4');
-                    h4.textContent = date;
-                    sessionsList.appendChild(h4);
-                    sessionsByDate[date].forEach(session => {
-                        const li = document.createElement('li');
-                        li.dataset.movie = session.movie;
-                        li.dataset.date = session.date;
-                        li.dataset.time = session.time;
-                        li.textContent = `${session.movie} | ${session.time}`;
-                        sessionsList.appendChild(li);
-                    });
-                }
-                updateActiveSession();
-            });
-        }
-
-        function updateActiveSession() {
-            const sessionsList = document.getElementById('sessions');
-            const movie = movieSelect.value;
-            const date = dateInput.value;
-            const time = timeSelect.value;
-            Array.from(sessionsList.querySelectorAll('li')).forEach(li => {
-                if (li.dataset.movie === movie && li.dataset.date === date && li.dataset.time === time) li.classList.add('active');
-                else li.classList.remove('active');
-            });
-        }
-
-        document.getElementById('sessions').addEventListener('click', (e) => {
-            const li = e.target.closest('li[data-movie]');
-            if (li) {
-                dateInput.value = li.dataset.date;
-                updateMovies();
-                movieSelect.value = li.dataset.movie;
-                updateTimes();
-                timeSelect.value = li.dataset.time;
-                loadSeats();
-            }
-        });
-
-        document.getElementById('show-all-sessions').addEventListener('click', () => {
-            showAll = !showAll;
-            renderSessionsList();
-        });
-
-        window.addEventListener('load', () => {
-            renderSessionsList();
-        });
-
-        dateInput.addEventListener('change', updateMovies);
-        movieSelect.addEventListener('change', updateTimes);
-        timeSelect.addEventListener('change', loadSeats);
-
-        canvas.addEventListener('click', (e) => {
-            const date = dateInput.value;
-            const movie = movieSelect.value;
-            const time = timeSelect.value;
-            if (!date || !movie || !time) {
-                document.getElementById('seat-message').textContent = 'Пожалуйста, выберите дату, фильм и время';
-                return;
-            }
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const x = (e.clientX - rect.left) * scaleX;
-            const y = (e.clientY - rect.top) * scaleY;
-
-            const poufStartX = (canvas.width - (8 * seatSize + 7 * seatPadding)) / 2;
-            for (let col = 0; col < 8; col++) {
-                const seatX = poufStartX + col * (seatSize + seatPadding);
-                const seatY = 70;
-                if (Math.hypot(x - seatX, y - seatY) < seatSize / 2) {
-                    if (seats.poufs[0][col] === 'free') {
-                        seats.poufs[0][col] = 'selected';
-                        selectedSeats.push({ type: 'pouf', row: 0, col });
-                    } else if (seats.poufs[0][col] === 'selected') {
-                        seats.poufs[0][col] = 'free';
-                        selectedSeats = selectedSeats.filter(s => !(s.type === 'pouf' && s.row === 0 && s.col === col));
-                    }
-                    updateSelectedSeats();
-                    drawSeats();
-                    return;
-                }
-            }
-
-            const sofa1StartX = (canvas.width - (5 * 60 + 4 * seatPadding)) / 2;
-            for (let col = 0; col < 5; col++) {
-                const seatX = sofa1StartX + col * (60 + seatPadding);
-                const seatY = 120;
-                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
-                    if (seats.sofas[0][col] === 'free') showSeatModal('sofa', 0, col, 2, 3);
-                    else if (seats.sofas[0][col] === 'selected') {
-                        seats.sofas[0][col] = 'free';
-                        delete seatCounts[`sofa_0_${col}`];
-                        selectedSeats = selectedSeats.filter(s => !(s.type === 'sofa' && s.row === 0 && s.col === col));
-                        updateSelectedSeats();
-                        drawSeats();
-                    }
-                    return;
-                }
-            }
-
-            const sofa2StartX = (canvas.width - (6 * 60 + 5 * seatPadding)) / 2;
-            for (let col = 0; col < 6; col++) {
-                const seatX = sofa2StartX + col * (60 + seatPadding);
-                const seatY = 180;
-                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
-                    if (seats.sofas[1][col] === 'free') showSeatModal('sofa', 1, col, 2, 3);
-                    else if (seats.sofas[1][col] === 'selected') {
-                        seats.sofas[1][col] = 'free';
-                        delete seatCounts[`sofa_1_${col}`];
-                        selectedSeats = selectedSeats.filter(s => !(s.type === 'sofa' && s.row === 1 && s.col === col));
-                        updateSelectedSeats();
-                        drawSeats();
-                    }
-                    return;
-                }
-            }
-
-            const sofa3StartX = (canvas.width - (6 * 60 + 5 * seatPadding)) / 2;
-            for (let col = 0; col < 6; col++) {
-                const seatX = sofa3StartX + col * (60 + seatPadding);
-                const seatY = 240;
-                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
-                    if (seats.sofas[2][col] === 'free') showSeatModal('sofa', 2, col, 2, 3);
-                    else if (seats.sofas[2][col] === 'selected') {
-                        seats.sofas[2][col] = 'free';
-                        delete seatCounts[`sofa_2_${col}`];
-                        selectedSeats = selectedSeats.filter(s => !(s.type === 'sofa' && s.row === 2 && s.col === col));
-                        updateSelectedSeats();
-                        drawSeats();
-                    }
-                    return;
-                }
-            }
-
-            const sofa4StartX = (canvas.width - (4 * 60 + 3 * seatPadding)) / 2;
-            for (let col = 0; col < 4; col++) {
-                const seatX = sofa4StartX + col * (60 + seatPadding);
-                const seatY = 300;
-                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
-                    if (seats.sofas[3][col] === 'free') showSeatModal('sofa', 3, col, 2, 3);
-                    else if (seats.sofas[3][col] === 'selected') {
-                        seats.sofas[3][col] = 'free';
-                        delete seatCounts[`sofa_3_${col}`];
-                        selectedSeats = selectedSeats.filter(s => !(s.type === 'sofa' && s.row === 3 && s.col === col));
-                        updateSelectedSeats();
-                        drawSeats();
-                    }
-                    return;
-                }
-            }
-            if (x >= 50 && x <= 130 && y >= 300 && y <= 330) {
-                if (seats.cornerSofas[0][0] === 'free') showSeatModal('cornerSofa', 0, 0, 4, 6);
-                else if (seats.cornerSofas[0][0] === 'selected') {
-                    seats.cornerSofas[0][0] = 'free';
-                    delete seatCounts[`cornerSofa_0_0`];
-                    selectedSeats = selectedSeats.filter(s => !(s.type === 'cornerSofa' && s.row === 0 && s.col === 0));
-                    updateSelectedSeats();
-                    drawSeats();
-                }
-                return;
-            }
-            if (x >= canvas.width - 130 && x <= canvas.width - 50 && y >= 300 && y <= 330) {
-                if (seats.cornerSofas[0][1] === 'free') showSeatModal('cornerSofa', 0, 1, 4, 6);
-                else if (seats.cornerSofas[0][1] === 'selected') {
-                    seats.cornerSofas[0][1] = 'free';
-                    delete seatCounts[`cornerSofa_0_1`];
-                    selectedSeats = selectedSeats.filter(s => !(s.type === 'cornerSofa' && s.row === 0 && s.col === 1));
-                    updateSelectedSeats();
-                    drawSeats();
-                }
-                return;
-            }
-
-            const sofa5StartX = (canvas.width - (3 * 60 + 2 * seatPadding)) / 2;
-            for (let col = 0; col < 3; col++) {
-                const seatX = sofa5StartX + col * (60 + seatPadding);
-                const seatY = 360;
-                if (x >= seatX && x <= seatX + 60 && y >= seatY && y <= seatY + 25) {
-                    if (seats.sofas[4][col] === 'free') showSeatModal('sofa', 4, col, 2, 3);
-                    else if (seats.sofas[4][col] === 'selected') {
-                        seats.sofas[4][col] = 'free';
-                        delete seatCounts[`sofa_4_${col}`];
-                        selectedSeats = selectedSeats.filter(s => !(s.type === 'sofa' && s.row === 4 && s.col === col));
-                        updateSelectedSeats();
-                        drawSeats();
-                    }
-                    return;
-                }
-            }
-            if (x >= 50 && x <= 130 && y >= 360 && y <= 390) {
-                if (seats.cornerSofas[1][0] === 'free') showSeatModal('cornerSofa', 1, 0, 4, 6);
-                else if (seats.cornerSofas[1][0] === 'selected') {
-                    seats.cornerSofas[1][0] = 'free';
-                    delete seatCounts[`cornerSofa_1_0`];
-                    selectedSeats = selectedSeats.filter(s => !(s.type === 'cornerSofa' && s.row === 1 && s.col === 0));
-                    updateSelectedSeats();
-                    drawSeats();
-                }
-                return;
-            }
-            if (x >= canvas.width - 130 && x <= canvas.width - 50 && y >= 360 && y <= 390) {
-                if (seats.cornerSofas[1][1] === 'free') showSeatModal('cornerSofa', 1, 1, 4, 6);
-                else if (seats.cornerSofas[1][1] === 'selected') {
-                    seats.cornerSofas[1][1] = 'free';
-                    delete seatCounts[`cornerSofa_1_1`];
-                    selectedSeats = selectedSeats.filter(s => !(s.type === 'cornerSofa' && s.row === 1 && s.col === 1));
-                    updateSelectedSeats();
-                    drawSeats();
-                }
-                return;
-            }
-        });
-
-        const payButton = document.getElementById('pay-button');
-        payButton.addEventListener('click', async () => {
-            if (selectedSeats.length === 0) {
-                alert('Пожалуйста, выберите хотя бы одно место!');
-                return;
-            }
-            const movie = document.getElementById('movie').value;
-            const date = document.getElementById('date').value;
-            const time = document.getElementById('time').value;
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const seatsToSave = selectedSeats.map(seat => ({ ...seat, count: seatCounts[`${seat.type}_${seat.row}_${seat.col}`] || 1 }));
+        async function fetchBookings(movie, date, time) {
             try {
-                const response = await fetch('/.netlify/functions/create-payment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ movie, date, time, name, email, seats: seatsToSave, amount: selectedSeats.reduce((total, seat) => {
-                        const count = seatCounts[`${seat.type}_${seat.row}_${seat.col}`] || 1;
-                        return total + (count * 450);
-                    }, 0) })
-                });
-                const data = await response.json();
-                document.getElementById('payment-message').textContent = data.message;
-                selectedSeats.forEach(seat => {
-                    if (seat.type === 'pouf') seats.poufs[0][seat.col] = 'booked';
-                    else if (seat.type === 'sofa') seats.sofas[seat.row][seat.col] = 'booked';
-                    else if (seat.type === 'cornerSofa') seats.cornerSofas[seat.row][seat.col] = 'booked';
-                });
-                localStorage.setItem(getSessionKey(), JSON.stringify(JSON.parse(localStorage.getItem(getSessionKey()) || '[]').concat(seatsToSave)));
-                selectedSeats = [];
-                Object.keys(seatCounts).forEach(key => delete seatCounts[key]);
-                updateSelectedSeats();
-                drawSeats();
-                document.getElementById('payment-message').textContent = 'Оплата пока не подключена, но места забронированы для теста!';
+                const response = await fetch(`https://lvgkino.ru/.netlify/functions/bookings?movie=${encodeURIComponent(movie)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const bookings = await response.json();
+                console.log('Fetched bookings:', bookings);
+                return bookings;
             } catch (error) {
-                document.getElementById('payment-message').textContent = 'Ошибка: ' + error.message;
+                console.error('Ошибка загрузки бронирований:', error);
+                return [];
             }
-        });
+        }
 
-        renderSessionsList();
-        loadSeats();
+        function drawSessions() {
+            const sessionList = document.getElementById('session-list');
+            sessionList.innerHTML = '';
+            activeSessions.forEach((session, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${session.movie} - ${session.date} в ${session.time} (ID: ${session.id})`;
+                li.addEventListener('click', () => selectSession(index));
+                sessionList.appendChild(li);
+            });
+        }
+
+        async function selectSession(index) {
+            activeSessionIndex = index;
+            document.querySelectorAll('#session-list li').forEach((li, i) => {
+                li.classList.toggle('selected', i === index);
+            });
+            await loadSeats();
+        }
+
+        async function loadSeats() {
+            const session = activeSessions[activeSessionIndex];
+            if (!session) return;
+            const bookings = await fetchBookings(session.movie, session.date, session.time);
+            const seatsContainer = document.getElementById('seats-container');
+            const seatsDiv = document.getElementById('seats');
+            seatsDiv.innerHTML = '';
+            seatsContainer.style.display = 'block';
+
+            // Пример сетки мест (3 ряда, 5 колонок)
+            const rows = ['A', 'B', 'C'];
+            const cols = [1, 2, 3, 4, 5];
+            const bookedSeats = bookings.map(b => `${b.row}${b.col}`);
+
+            rows.forEach(row => {
+                cols.forEach(col => {
+                    const seatId = `${row}${col}`;
+                    const seat = document.createElement('div');
+                    seat.className = 'seat';
+                    seat.textContent = seatId;
+                    if (bookedSeats.includes(seatId)) {
+                        seat.classList.add('booked');
+                    } else {
+                        seat.addEventListener('click', () => toggleSeat(seatId));
+                    }
+                    seatsDiv.appendChild(seat);
+                });
+            });
+        }
+
+        function toggleSeat(seatId) {
+            const seat = document.querySelector(`.seat:contains(${seatId})`);
+            if (seat && !seat.classList.contains('booked')) {
+                const isSelected = seat.classList.toggle('selected');
+                if (isSelected) {
+                    selectedSeats.push({ type: 'seat', row: seatId[0], col: parseInt(seatId.slice(1)) });
+                } else {
+                    selectedSeats = selectedSeats.filter(s => `${s.row}${s.col}` !== seatId);
+                }
+            }
+        }
+
+        async function bookSeats() {
+            if (selectedSeats.length === 0 || activeSessionIndex === -1) {
+                alert('Выберите места для бронирования!');
+                return;
+            }
+            const session = activeSessions[activeSessionIndex];
+            const response = await fetch('https://lvgkino.ru/.netlify/functions/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    movie: session.movie,
+                    date: session.date,
+                    time: session.time,
+                    seats: selectedSeats
+                })
+            });
+
+            if (response.ok) {
+                alert('Места успешно забронированы!');
+                selectedSeats = [];
+                await loadSeats();
+            } else {
+                const error = await response.json();
+                alert('Ошибка: ' + (error.message || 'Не удалось забронировать'));
+            }
+        }
+
+        // Автоматическая загрузка сеансов каждые 5 секунд для синхронизации
+        async function refreshData() {
+            activeSessions = await fetchSessions();
+            drawSessions();
+            if (activeSessionIndex !== -1) await loadSeats();
+        }
+
+        setInterval(refreshData, 5000);
+
+        // Инициализация при загрузке страницы
+        window.onload = () => {
+            refreshData();
+        };
     </script>
 </body>
 </html>
