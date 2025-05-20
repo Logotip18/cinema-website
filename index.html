@@ -5,28 +5,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LVG Kino</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
-        h1 { color: #333; }
-        #session-list { list-style-type: none; padding: 0; }
-        #session-list li { padding: 10px; margin: 5px 0; background-color: #fff; border: 1px solid #ddd; cursor: pointer; }
-        #session-list li:hover { background-color: #e0e0e0; }
-        .selected { background-color: #d0d0d0; font-weight: bold; }
-        #seats-container { margin-top: 20px; }
-        .seat { display: inline-block; width: 40px; height: 40px; margin: 5px; background-color: #ccc; text-align: center; line-height: 40px; cursor: pointer; }
-        .seat.booked { background-color: #ff4d4d; cursor: not-allowed; }
-        .seat.selected { background-color: #4CAF50; color: white; }
-        button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
-        button:hover { background-color: #45a049; }
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        h2, h3 {
+            color: #34495e;
+        }
+        /* Панель сеансов */
+        #session-panel {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        #session-list {
+            list-style-type: none;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        #session-list li {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #session-list li:hover {
+            background-color: #2980b9;
+        }
+        #session-list li.selected {
+            background-color: #e74c3c;
+            font-weight: bold;
+        }
+        /* Расположение мест */
+        #seats-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #seats {
+            display: grid;
+            grid-template-columns: repeat(5, 50px);
+            gap: 10px;
+            justify-content: center;
+            margin: 20px auto;
+        }
+        .seat {
+            width: 50px;
+            height: 50px;
+            background-color: #2ecc71;
+            color: white;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .seat.booked {
+            background-color: #e74c3c;
+            cursor: not-allowed;
+        }
+        .seat.selected {
+            background-color: #f1c40f;
+            color: #333;
+        }
+        /* Кнопка бронирования */
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        /* Адаптивность для мобильных */
+        @media (max-width: 600px) {
+            #seats {
+                grid-template-columns: repeat(3, 50px);
+            }
+            #session-list {
+                flex-direction: column;
+            }
+            #session-list li {
+                width: 100%;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
     <h1>LVG Kino</h1>
 
-    <h2>Выберите сеанс</h2>
-    <ul id="session-list"></ul>
+    <div id="session-panel">
+        <h2>Выберите сеанс</h2>
+        <ul id="session-list"></ul>
+    </div>
 
     <div id="seats-container" style="display: none;">
-        <h3>Доступные места</h3>
+        <h3>Выберите места</h3>
         <div id="seats"></div>
         <button onclick="bookSeats()">Забронировать</button>
     </div>
@@ -68,11 +160,16 @@
 
         function drawSessions() {
             const sessionList = document.getElementById('session-list');
+            const previousSelection = activeSessionIndex !== -1 ? sessionList.children[activeSessionIndex] : null;
             sessionList.innerHTML = '';
             activeSessions.forEach((session, index) => {
                 const li = document.createElement('li');
-                li.textContent = `${session.movie} - ${session.date} в ${session.time} (ID: ${session.id})`;
+                li.textContent = `${session.movie} - ${session.date} в ${session.time}`;
+                li.dataset.index = index;
                 li.addEventListener('click', () => selectSession(index));
+                if (previousSelection && previousSelection.textContent === li.textContent) {
+                    li.classList.add('selected');
+                }
                 sessionList.appendChild(li);
             });
         }
@@ -94,10 +191,12 @@
             seatsDiv.innerHTML = '';
             seatsContainer.style.display = 'block';
 
-            // Пример сетки мест (3 ряда, 5 колонок)
+            // Сетка мест (3 ряда, 5 колонок)
             const rows = ['A', 'B', 'C'];
             const cols = [1, 2, 3, 4, 5];
             const bookedSeats = bookings.map(b => `${b.row}${b.col}`);
+
+            selectedSeats = []; // Очищаем выбор
 
             rows.forEach(row => {
                 cols.forEach(col => {
@@ -105,6 +204,7 @@
                     const seat = document.createElement('div');
                     seat.className = 'seat';
                     seat.textContent = seatId;
+                    seat.dataset.id = seatId;
                     if (bookedSeats.includes(seatId)) {
                         seat.classList.add('booked');
                     } else {
@@ -116,14 +216,13 @@
         }
 
         function toggleSeat(seatId) {
-            const seat = document.querySelector(`.seat:contains(${seatId})`);
-            if (seat && !seat.classList.contains('booked')) {
-                const isSelected = seat.classList.toggle('selected');
-                if (isSelected) {
-                    selectedSeats.push({ type: 'seat', row: seatId[0], col: parseInt(seatId.slice(1)) });
-                } else {
-                    selectedSeats = selectedSeats.filter(s => `${s.row}${s.col}` !== seatId);
-                }
+            const seat = document.querySelector(`.seat[data-id="${seatId}"]`);
+            if (!seat || seat.classList.contains('booked')) return;
+            const isSelected = seat.classList.toggle('selected');
+            if (isSelected) {
+                selectedSeats.push({ type: 'seat', row: seatId[0], col: parseInt(seatId.slice(1)) });
+            } else {
+                selectedSeats = selectedSeats.filter(s => `${s.row}${s.col}` !== seatId);
             }
         }
 
@@ -154,14 +253,21 @@
             }
         }
 
-        // Автоматическая загрузка сеансов каждые 5 секунд для синхронизации
+        // Автоматическая загрузка сеансов каждые 30 секунд
         async function refreshData() {
+            const prevActiveSessionIndex = activeSessionIndex;
+            const prevSessions = [...activeSessions];
             activeSessions = await fetchSessions();
-            drawSessions();
-            if (activeSessionIndex !== -1) await loadSeats();
+            const hasChanged = JSON.stringify(prevSessions) !== JSON.stringify(activeSessions);
+            if (hasChanged) {
+                drawSessions();
+                if (prevActiveSessionIndex === activeSessionIndex && activeSessionIndex !== -1) {
+                    await loadSeats();
+                }
+            }
         }
 
-        setInterval(refreshData, 5000);
+        setInterval(refreshData, 30000); // Обновление каждые 30 секунд
 
         // Инициализация при загрузке страницы
         window.onload = () => {
