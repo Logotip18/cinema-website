@@ -7,7 +7,7 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
         h1 { color: #333; }
-        #sessions-list, #bookings-list { list-style-type: none; padding: 0; }
+        #sessions-list, #bookings-list, #archive-list { list-style-type: none; padding: 0; }
         li { padding: 10px; margin: 5px 0; background-color: #fff; border: 1px solid #ddd; cursor: pointer; }
         li:hover { background-color: #e0e0e0; }
         .selected { background-color: #d0d0d0; font-weight: bold; }
@@ -16,6 +16,8 @@
         input, button { padding: 8px; margin-right: 10px; }
         button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
         button:hover { background-color: #45a049; }
+        h2 { color: #34495e; }
+        .section { margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -35,11 +37,20 @@
     </div>
     <button onclick="addSession()">Добавить сеанс</button>
 
-    <h2>Список сеансов</h2>
-    <ul id="sessions-list"></ul>
+    <div class="section">
+        <h2>Актуальные сеансы</h2>
+        <ul id="sessions-list"></ul>
+    </div>
 
-    <h2>Бронирования выбранного сеанса</h2>
-    <ul id="bookings-list"></ul>
+    <div class="section">
+        <h2>Архивные сеансы</h2>
+        <ul id="archive-list"></ul>
+    </div>
+
+    <div class="section">
+        <h2>Бронирования выбранного сеанса</h2>
+        <ul id="bookings-list"></ul>
+    </div>
 
     <script>
         let selectedSession = null;
@@ -74,9 +85,18 @@
             }
         }
 
-        async function renderSessionsList() {
+        function isSessionExpired(session) {
+            const now = new Date();
+            const sessionTime = new Date(`${session.date}T${session.time}:00`);
+            sessionTime.setHours(sessionTime.getHours() + 4); // +4 часа
+            return now > sessionTime;
+        }
+
+        async function renderSessions() {
             const sessionsList = document.getElementById('sessions-list');
+            const archiveList = document.getElementById('archive-list');
             sessionsList.innerHTML = '';
+            archiveList.innerHTML = '';
             const sessions = await fetchSessions();
             if (sessions.length === 0) {
                 const li = document.createElement('li');
@@ -88,13 +108,17 @@
                 const li = document.createElement('li');
                 li.textContent = `${session.movie} - ${session.date} в ${session.time} (ID: ${session.id})`;
                 li.addEventListener('click', () => selectSession(session));
-                sessionsList.appendChild(li);
+                if (isSessionExpired(session)) {
+                    archiveList.appendChild(li);
+                } else {
+                    sessionsList.appendChild(li);
+                }
             });
         }
 
         function selectSession(session) {
             selectedSession = session;
-            document.querySelectorAll('#sessions-list li').forEach(li => {
+            document.querySelectorAll('#sessions-list li, #archive-list li').forEach(li => {
                 li.classList.toggle('selected', li.textContent.includes(session.id));
             });
             renderBookingsList();
@@ -118,7 +142,7 @@
             }
             bookings.forEach(booking => {
                 const li = document.createElement('li');
-                li.textContent = `Место: ${booking.type}, Ряд: ${booking.row}, Колонка: ${booking.col}`;
+                li.textContent = `Сеанс: ${selectedSession.movie} - ${selectedSession.date} ${selectedSession.time}, Место: ${booking.row}${booking.col}`;
                 bookingsList.appendChild(li);
             });
         }
@@ -144,19 +168,33 @@
                 document.getElementById('movie').value = '';
                 document.getElementById('date').value = '';
                 document.getElementById('time').value = '';
-                renderSessionsList();
+                renderSessions();
             } else {
                 const error = await response.json();
                 alert('Ошибка: ' + (error.message || 'Не удалось добавить сеанс'));
             }
         }
 
-        // Автоматическая загрузка сеансов каждые 5 секунд для синхронизации
-        setInterval(renderSessionsList, 5000);
+        // Автоматическая загрузка сеансов каждые 30 секунд
+        async function refreshData() {
+            const prevSelectedSessionId = selectedSession ? selectedSession.id : null;
+            const sessions = await fetchSessions();
+            const hasChanged = sessions.some(s => !activeSessions.find(a => a.id === s.id) || !activeSessions.some(a => a.id === s.id));
+            if (hasChanged) {
+                renderSessions();
+                if (prevSelectedSessionId) {
+                    const newSelectedSession = sessions.find(s => s.id === prevSelectedSessionId);
+                    if (newSelectedSession) selectSession(newSelectedSession);
+                }
+            }
+        }
+
+        let activeSessions = [];
+        setInterval(refreshData, 30000); // Обновление каждые 30 секунд
 
         // Инициализация при загрузке страницы
         window.onload = () => {
-            renderSessionsList();
+            renderSessions();
         };
     </script>
 </body>

@@ -19,7 +19,6 @@
         h2, h3 {
             color: #34495e;
         }
-        /* Панель сеансов */
         #session-panel {
             background-color: #fff;
             padding: 20px;
@@ -49,7 +48,6 @@
             background-color: #e74c3c;
             font-weight: bold;
         }
-        /* Расположение мест */
         #seats-container {
             margin-top: 20px;
             text-align: center;
@@ -81,7 +79,6 @@
             background-color: #f1c40f;
             color: #333;
         }
-        /* Кнопка бронирования */
         button {
             padding: 10px 20px;
             background-color: #3498db;
@@ -94,18 +91,10 @@
         button:hover {
             background-color: #2980b9;
         }
-        /* Адаптивность для мобильных */
         @media (max-width: 600px) {
-            #seats {
-                grid-template-columns: repeat(3, 50px);
-            }
-            #session-list {
-                flex-direction: column;
-            }
-            #session-list li {
-                width: 100%;
-                text-align: center;
-            }
+            #seats { grid-template-columns: repeat(3, 50px); }
+            #session-list { flex-direction: column; }
+            #session-list li { width: 100%; text-align: center; }
         }
     </style>
 </head>
@@ -158,6 +147,13 @@
             }
         }
 
+        function isSessionExpired(session) {
+            const now = new Date();
+            const sessionTime = new Date(`${session.date}T${session.time}:00`);
+            sessionTime.setHours(sessionTime.getHours() + 4); // +4 часа
+            return now > sessionTime;
+        }
+
         function drawSessions() {
             const sessionList = document.getElementById('session-list');
             const previousSelection = activeSessionIndex !== -1 ? sessionList.children[activeSessionIndex] : null;
@@ -191,12 +187,11 @@
             seatsDiv.innerHTML = '';
             seatsContainer.style.display = 'block';
 
-            // Сетка мест (3 ряда, 5 колонок)
             const rows = ['A', 'B', 'C'];
             const cols = [1, 2, 3, 4, 5];
             const bookedSeats = bookings.map(b => `${b.row}${b.col}`);
 
-            selectedSeats = []; // Очищаем выбор
+            selectedSeats = [];
 
             rows.forEach(row => {
                 cols.forEach(col => {
@@ -253,23 +248,23 @@
             }
         }
 
-        // Автоматическая загрузка сеансов каждые 30 секунд
         async function refreshData() {
             const prevActiveSessionIndex = activeSessionIndex;
             const prevSessions = [...activeSessions];
-            activeSessions = await fetchSessions();
+            activeSessions = (await fetchSessions()).filter(session => !isSessionExpired(session));
             const hasChanged = JSON.stringify(prevSessions) !== JSON.stringify(activeSessions);
             if (hasChanged) {
                 drawSessions();
-                if (prevActiveSessionIndex === activeSessionIndex && activeSessionIndex !== -1) {
-                    await loadSeats();
+                if (prevActiveSessionIndex !== -1 && activeSessions[prevActiveSessionIndex]) {
+                    selectSession(prevActiveSessionIndex);
+                } else if (activeSessions.length > 0) {
+                    selectSession(0);
                 }
             }
         }
 
         setInterval(refreshData, 30000); // Обновление каждые 30 секунд
 
-        // Инициализация при загрузке страницы
         window.onload = () => {
             refreshData();
         };
