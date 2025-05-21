@@ -7,7 +7,7 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
         h1 { color: #333; }
-        #sessions-list, #bookings-list, #archive-list { list-style-type: none; padding: 0; }
+        #sessions-list, #bookings-list, #archive-list, #confirmed-bookings { list-style-type: none; padding: 0; }
         li { padding: 10px; margin: 5px 0; background-color: #fff; border: 1px solid #ddd; cursor: pointer; }
         li:hover { background-color: #e0e0e0; }
         .selected { background-color: #d0d0d0; font-weight: bold; }
@@ -36,6 +36,11 @@
         <input type="time" id="time" required>
     </div>
     <button onclick="addSession()">Добавить сеанс</button>
+
+    <div class="section">
+        <h2>Забронированные места</h2>
+        <ul id="confirmed-bookings"></ul>
+    </div>
 
     <div class="section">
         <h2>Актуальные сеансы</h2>
@@ -88,8 +93,28 @@
         function isSessionExpired(session) {
             const now = new Date();
             const sessionTime = new Date(`${session.date}T${session.time}:00`);
-            sessionTime.setHours(sessionTime.getHours() + 4); // +4 часа
+            sessionTime.setHours(sessionTime.getHours() + 4);
             return now > sessionTime;
+        }
+
+        async function renderConfirmedBookings() {
+            const confirmedBookingsList = document.getElementById('confirmed-bookings');
+            confirmedBookingsList.innerHTML = '';
+            const allBookingsResponse = await fetch('https://lvgkino.ru/.netlify/functions/bookings');
+            if (!allBookingsResponse.ok) throw new Error(`HTTP error! status: ${allBookingsResponse.status}`);
+            const allBookings = await allBookingsResponse.json();
+            const confirmedBookings = allBookings.filter(b => b.confirmed);
+            if (confirmedBookings.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = 'Нет забронированных мест.';
+                confirmedBookingsList.appendChild(li);
+                return;
+            }
+            confirmedBookings.forEach(booking => {
+                const li = document.createElement('li');
+                li.textContent = `Сеанс: ${booking.movie} - ${booking.date} ${booking.time}, Место: ${booking.row}${booking.col}, Контакт: ${booking.contact}, Кол-во: ${booking.peopleCount}`;
+                confirmedBookingsList.appendChild(li);
+            });
         }
 
         async function renderSessions() {
@@ -142,7 +167,7 @@
             }
             bookings.forEach(booking => {
                 const li = document.createElement('li');
-                li.textContent = `Сеанс: ${selectedSession.movie} - ${selectedSession.date} ${selectedSession.time}, Место: ${booking.row}${booking.col}`;
+                li.textContent = `Сеанс: ${selectedSession.movie} - ${selectedSession.date} ${selectedSession.time}, Место: ${booking.row}${booking.col}, Контакт: ${booking.contact}, Кол-во: ${booking.peopleCount}`;
                 bookingsList.appendChild(li);
             });
         }
@@ -168,20 +193,21 @@
                 document.getElementById('movie').value = '';
                 document.getElementById('date').value = '';
                 document.getElementById('time').value = '';
-                renderSessions();
+                await renderSessions();
+                await renderConfirmedBookings();
             } else {
                 const error = await response.json();
                 alert('Ошибка: ' + (error.message || 'Не удалось добавить сеанс'));
             }
         }
 
-        // Автоматическая загрузка сеансов каждые 30 секунд
         async function refreshData() {
             const prevSelectedSessionId = selectedSession ? selectedSession.id : null;
             const sessions = await fetchSessions();
             const hasChanged = sessions.some(s => !activeSessions.find(a => a.id === s.id) || !activeSessions.some(a => a.id === s.id));
             if (hasChanged) {
-                renderSessions();
+                await renderSessions();
+                await renderConfirmedBookings();
                 if (prevSelectedSessionId) {
                     const newSelectedSession = sessions.find(s => s.id === prevSelectedSessionId);
                     if (newSelectedSession) selectSession(newSelectedSession);
@@ -190,11 +216,11 @@
         }
 
         let activeSessions = [];
-        setInterval(refreshData, 30000); // Обновление каждые 30 секунд
+        setInterval(refreshData, 30000);
 
-        // Инициализация при загрузке страницы
-        window.onload = () => {
-            renderSessions();
+        window.onload = async () => {
+            await renderSessions();
+            await renderConfirmedBookings();
         };
     </script>
 </body>
