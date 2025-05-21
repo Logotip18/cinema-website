@@ -193,8 +193,8 @@
                 document.getElementById('movie').value = '';
                 document.getElementById('date').value = '';
                 document.getElementById('time').value = '';
-                await renderSessions();
-                await renderConfirmedBookings();
+                renderSessions();
+                renderConfirmedBookings();
             } else {
                 const error = await response.json();
                 alert('Ошибка: ' + (error.message || 'Не удалось добавить сеанс'));
@@ -206,8 +206,8 @@
             const sessions = await fetchSessions();
             const hasChanged = sessions.some(s => !activeSessions.find(a => a.id === s.id) || !activeSessions.some(a => a.id === s.id));
             if (hasChanged) {
-                await renderSessions();
-                await renderConfirmedBookings();
+                renderSessions();
+                renderConfirmedBookings();
                 if (prevSelectedSessionId) {
                     const newSelectedSession = sessions.find(s => s.id === prevSelectedSessionId);
                     if (newSelectedSession) selectSession(newSelectedSession);
@@ -218,9 +218,9 @@
         let activeSessions = [];
         setInterval(refreshData, 30000);
 
-        window.onload = async () => {
-            await renderSessions();
-            await renderConfirmedBookings();
+        window.onload = () => {
+            renderSessions();
+            renderConfirmedBookings();
         };
     </script>
 </body>
