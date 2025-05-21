@@ -1,266 +1,130 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Схема зала LVG Kino</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #222;
-    color: #eee;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-  }
-  h1 {
-    color: #e67e22; /* оранжевый */
-    margin-bottom: 20px;
-  }
-  #hall {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    background: #34495e;
-    padding: 25px 50px;
-    border-radius: 15px;
-    box-shadow: 0 0 20px #e67e22aa;
-    min-width: 600px;
-  }
-
-  /* Контейнер ряда с меткой */
-  .row-container {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    justify-content: center;
-  }
-
-  /* Надписи рядов слева */
-  .row-label {
-    width: 25px;
-    color: #ecf0f1;
-    font-weight: bold;
-    user-select: none;
-    text-align: right;
-    flex-shrink: 0;
-  }
-
-  /* Ряд с местами */
-  .row {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    flex-wrap: nowrap;
-    min-width: 500px;
-  }
-
-  /* Пуфики (круги) */
-  .pouf {
-    width: 40px;
-    height: 40px;
-    background: #2ecc71;
-    border-radius: 50%;
-    box-shadow: 0 0 7px #27ae6011 inset;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: #222;
-    user-select: none;
-    transition: transform 0.2s ease, background-color 0.3s ease;
-    flex-shrink: 0;
-  }
-  .pouf.booked {
-    background: #c0392b;
-    cursor: not-allowed;
-    color: #fff;
-    box-shadow: none;
-  }
-  .pouf.selected {
-    background: #f1c40f;
-    color: #222;
-    transform: scale(1.2);
-  }
-
-  /* Двухместные диваны (прямоугольники) */
-  .sofa-2 {
-    width: 90px;
-    height: 40px;
-    background: #3498db;
-    border-radius: 12px;
-    box-shadow: 0 0 10px #2980b9;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: white;
-    user-select: none;
-    transition: transform 0.2s ease, background-color 0.3s ease;
-    flex-shrink: 0;
-  }
-  .sofa-2.booked {
-    background: #c0392b;
-    cursor: not-allowed;
-    color: #fff;
-    box-shadow: none;
-  }
-  .sofa-2.selected {
-    background: #f1c40f;
-    color: #222;
-    transform: scale(1.1);
-  }
-
-  /* Четырёхместные диваны (большой квадрат) — оранжевый */
-  .sofa-4 {
-    width: 90px;
-    height: 90px;
-    background: #e67e22; /* оранжевый */
-    border-radius: 15px;
-    box-shadow: 0 0 15px #d35400;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: white;
-    user-select: none;
-    transition: transform 0.2s ease, background-color 0.3s ease;
-    flex-shrink: 0;
-  }
-  .sofa-4.booked {
-    background: #c0392b;
-    cursor: not-allowed;
-    color: #fff;
-    box-shadow: none;
-  }
-  .sofa-4.selected {
-    background: #f1c40f;
-    color: #222;
-    transform: scale(1.1);
-  }
-
-  /* Подсказка при наведении */
-  .seat:hover:not(.booked) {
-    filter: brightness(1.2);
-  }
-
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LVG Kino</title>
+    <style>
+        .seat { display: inline-block; width: 30px; height: 30px; margin: 5px; background: #ccc; cursor: pointer; }
+        .seat.booked { background: #f00; cursor: not-allowed; }
+        .seat.selected { background: #0f0; }
+    </style>
 </head>
 <body>
-  <h1>Схема зала LVG Kino</h1>
+    <h1>Схема зала LVG Kino</h1>
 
-  <div id="hall">
-    <!-- 1-й ряд: 8 пуфиков -->
-    <div class="row-container">
-      <div class="row-label">1</div>
-      <div class="row" id="row1"></div>
+    <div>
+        <h2>Выберите сеанс</h2>
+        <select id="sessionSelect" onchange="loadSeats()"></select>
     </div>
 
-    <!-- 2-й ряд: 5 двухместных диванов -->
-    <div class="row-container">
-      <div class="row-label">2</div>
-      <div class="row" id="row2"></div>
+    <div id="seatsContainer">
+        <h2>Выберите места</h2>
+        <div id="seats"></div>
     </div>
 
-    <!-- 3-й ряд: 6 двухместных диванов -->
-    <div class="row-container">
-      <div class="row-label">3</div>
-      <div class="row" id="row3"></div>
+    <div>
+        <h2>Бронирование</h2>
+        Имя: <input type="text" id="userName"><br>
+        Email: <input type="email" id="userEmail"><br>
+        <button onclick="bookSeats()">Забронировать</button>
     </div>
 
-    <!-- 4-й ряд: 4 двухместных в центре, по краям по одному 4-местному -->
-    <div class="row-container">
-      <div class="row-label">4</div>
-      <div class="row" id="row4"></div>
-    </div>
+    <script>
+        let selectedSeats = [];
+        const totalSeats = 50; // Общее количество мест в зале
 
-    <!-- 5-й ряд: 3 двухместных в центре, по краям по одному 4-местному -->
-    <div class="row-container">
-      <div class="row-label">5</div>
-      <div class="row" id="row5"></div>
-    </div>
-  </div>
+        async function loadSessions() {
+            const response = await fetch('/.netlify/functions/api/sessions');
+            const sessions = await response.json();
+            const sessionSelect = document.getElementById('sessionSelect');
+            sessionSelect.innerHTML = '<option value="">Выберите сеанс</option>';
+            sessions.forEach(session => {
+                const sessionDateTime = new Date(`${session.date}T${session.time}`);
+                if (sessionDateTime >= new Date()) {
+                    sessionSelect.innerHTML += `<option value="${session.id}">${session.movie_title} - ${session.date} ${session.time}</option>`;
+                }
+            });
+        }
 
-<script>
-  const hall = {
-    1: { type: 'pouf', count: 8 },
-    2: { type: 'sofa-2', count: 5 },
-    3: { type: 'sofa-2', count: 6 },
-    4: { type: 'custom', layout: [
-      { type: 'sofa-4', id: '4L' },
-      { type: 'sofa-2', id: '4C1' },
-      { type: 'sofa-2', id: '4C2' },
-      { type: 'sofa-2', id: '4C3' },
-      { type: 'sofa-2', id: '4C4' },
-      { type: 'sofa-4', id: '4R' }
-    ]},
-    5: { type: 'custom', layout: [
-      { type: 'sofa-4', id: '5L' },
-      { type: 'sofa-2', id: '5C1' },
-      { type: 'sofa-2', id: '5C2' },
-      { type: 'sofa-2', id: '5C3' },
-      { type: 'sofa-4', id: '5R' }
-    ]}
-  };
+        async function loadSeats() {
+            const sessionId = document.getElementById('sessionSelect').value;
+            if (!sessionId) return;
 
-  const bookedSeats = new Set(['1S3', '2S2', '4L', '5R']);
+            const response = await fetch('/.netlify/functions/api/sessions');
+            const sessions = await response.json();
+            const session = sessions.find(s => s.id == sessionId);
+            if (!session) return;
 
-  function createSeatElement(rowNum, seatNum, type, id) {
-    const seat = document.createElement('div');
-    seat.classList.add(type);
-    seat.classList.add('seat');
-    seat.dataset.row = rowNum;
-    seat.dataset.seat = seatNum || id;
-    seat.id = `R${rowNum}S${seatNum || id}`;
-    seat.textContent = seatNum || id;
+            const bookedSeatsResponse = await fetch(`/api/bookings?session_id=${sessionId}`);
+            const bookedSeats = await bookedSeatsResponse.json();
 
-    if (bookedSeats.has(seat.id)) {
-      seat.classList.add('booked');
-    }
+            const seatsDiv = document.getElementById('seats');
+            seatsDiv.innerHTML = '';
+            selectedSeats = [];
 
-    seat.addEventListener('click', () => {
-      if (seat.classList.contains('booked')) return;
-      seat.classList.toggle('selected');
-    });
+            for (let i = 1; i <= totalSeats; i++) {
+                const seat = document.createElement('div');
+                seat.className = 'seat';
+                seat.textContent = i;
+                if (bookedSeats.some(b => b.seats.includes(i))) {
+                    seat.classList.add('booked');
+                } else {
+                    seat.onclick = () => toggleSeat(i, seat);
+                }
+                seatsDiv.appendChild(seat);
+            }
+        }
 
-    return seat;
-  }
+        function toggleSeat(seatNumber, seatElement) {
+            const index = selectedSeats.indexOf(seatNumber);
+            if (index === -1) {
+                selectedSeats.push(seatNumber);
+                seatElement.classList.add('selected');
+            } else {
+                selectedSeats.splice(index, 1);
+                seatElement.classList.remove('selected');
+            }
+        }
 
-  function fillHall() {
-    const row1 = document.getElementById('row1');
-    for (let i = 1; i <= hall[1].count; i++) {
-      row1.appendChild(createSeatElement(1, i, hall[1].type));
-    }
+        async function bookSeats() {
+            const session_id = document.getElementById('sessionSelect').value;
+            const user_name = document.getElementById('userName').value;
+            const user_email = document.getElementById('userEmail').value;
+            const seats = selectedSeats.length;
 
-    const row2 = document.getElementById('row2');
-    for (let i = 1; i <= hall[2].count; i++) {
-      row2.appendChild(createSeatElement(2, i, hall[2].type));
-    }
+            if (!session_id || !user_name || !user_email || seats === 0) {
+                return alert('Заполните все поля и выберите места');
+            }
 
-    const row3 = document.getElementById('row3');
-    for (let i = 1; i <= hall[3].count; i++) {
-      row3.appendChild(createSeatElement(3, i, hall[3].type));
-    }
+            const response = await fetch('/.netlify/functions/api/book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id, user_name, user_email, seats })
+            });
+            const result = await response.json();
 
-    const row4 = document.getElementById('row4');
-    hall[4].layout.forEach(seatInfo => {
-      row4.appendChild(createSeatElement(4, null, seatInfo.type, seatInfo.id));
-    });
+            if (response.ok) {
+                // Тестовая оплата
+                const paymentResponse = await fetch('/.netlify/functions/api/payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ booking_id: result.booking_id })
+                });
+                const paymentResult = await paymentResponse.json();
 
-    const row5 = document.getElementById('row5');
-    hall[5].layout.forEach(seatInfo => {
-      row5.appendChild(createSeatElement(5, null, seatInfo.type, seatInfo.id));
-    });
-  }
+                if (paymentResponse.ok) {
+                    alert('Бронирование успешно! Оплата прошла (тестовый режим).');
+                    loadSeats();
+                } else {
+                    alert('Ошибка оплаты: ' + paymentResult.error);
+                }
+            } else {
+                alert('Ошибка бронирования: ' + result.error);
+            }
+        }
 
-  fillHall();
-</script>
-
+        window.onload = loadSessions;
+    </script>
 </body>
 </html>
-
-Найти еще

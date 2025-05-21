@@ -3,224 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админка - LVG Kino</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
-        h1 { color: #333; }
-        #sessions-list, #bookings-list, #archive-list, #confirmed-bookings { list-style-type: none; padding: 0; }
-        li { padding: 10px; margin: 5px 0; background-color: #fff; border: 1px solid #ddd; cursor: pointer; }
-        li:hover { background-color: #e0e0e0; }
-        .selected { background-color: #d0d0d0; font-weight: bold; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; }
-        input, button { padding: 8px; margin-right: 10px; }
-        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
-        button:hover { background-color: #45a049; }
-        h2 { color: #34495e; }
-        .section { margin-bottom: 20px; }
-    </style>
+    <title>Админка LVG Kino</title>
 </head>
 <body>
     <h1>Админка LVG Kino</h1>
 
-    <div class="form-group">
-        <label for="movie">Фильм:</label>
-        <input type="text" id="movie" required>
-    </div>
-    <div class="form-group">
-        <label for="date">Дата (YYYY-MM-DD):</label>
-        <input type="date" id="date" required>
-    </div>
-    <div class="form-group">
-        <label for="time">Время (HH:MM):</label>
-        <input type="time" id="time" required>
-    </div>
-    <button onclick="addSession()">Добавить сеанс</button>
-
-    <div class="section">
-        <h2>Забронированные места</h2>
-        <ul id="confirmed-bookings"></ul>
+    <div>
+        <h2>Добавить фильм</h2>
+        Фильм: <input type="text" id="movieTitle">
+        <button onclick="addMovie()">Добавить фильм</button>
     </div>
 
-    <div class="section">
+    <div>
+        <h2>Добавить сеанс</h2>
+        Фильм: <select id="movieSelect"></select><br>
+        Дата (YYYY-MM-DD): <input type="text" id="sessionDate"><br>
+        Время (HH:MM): <input type="text" id="sessionTime"><br>
+        Доступных мест: <input type="number" id="availableSeats" value="50"><br>
+        <button onclick="addSession()">Добавить сеанс</button>
+    </div>
+
+    <div>
         <h2>Актуальные сеансы</h2>
-        <ul id="sessions-list"></ul>
+        <ul id="currentSessions"></ul>
     </div>
 
-    <div class="section">
+    <div>
         <h2>Архивные сеансы</h2>
-        <ul id="archive-list"></ul>
+        <ul id="pastSessions"></ul>
     </div>
 
-    <div class="section">
+    <div>
         <h2>Бронирования выбранного сеанса</h2>
-        <ul id="bookings-list"></ul>
+        <select id="sessionSelect" onchange="loadBookings()"></select>
+        <ul id="bookingsList"></ul>
     </div>
 
     <script>
-        let selectedSession = null;
+        const today = new Date().toISOString().split('T')[0];
 
-        async function fetchSessions() {
-            try {
-                const response = await fetch('https://lvgkino.ru/.netlify/functions/sessions');
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-                if (!Array.isArray(data)) {
-                    console.error('Unexpected response format:', data);
-                    return [];
-                }
-                console.log('Fetched sessions:', data);
-                return data;
-            } catch (error) {
-                console.error('Ошибка загрузки сеансов:', error);
-                return [];
-            }
-        }
-
-        async function fetchBookings(movie, date, time) {
-            try {
-                const response = await fetch(`https://lvgkino.ru/.netlify/functions/bookings?movie=${encodeURIComponent(movie)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const bookings = await response.json();
-                console.log('Fetched bookings:', bookings);
-                return bookings;
-            } catch (error) {
-                console.error('Ошибка загрузки бронирований:', error);
-                return [];
-            }
-        }
-
-        function isSessionExpired(session) {
-            const now = new Date();
-            const sessionTime = new Date(`${session.date}T${session.time}:00`);
-            sessionTime.setHours(sessionTime.getHours() + 4);
-            return now > sessionTime;
-        }
-
-        async function renderConfirmedBookings() {
-            const confirmedBookingsList = document.getElementById('confirmed-bookings');
-            confirmedBookingsList.innerHTML = '';
-            const allBookingsResponse = await fetch('https://lvgkino.ru/.netlify/functions/bookings');
-            if (!allBookingsResponse.ok) throw new Error(`HTTP error! status: ${allBookingsResponse.status}`);
-            const allBookings = await allBookingsResponse.json();
-            const confirmedBookings = allBookings.filter(b => b.confirmed);
-            if (confirmedBookings.length === 0) {
-                const li = document.createElement('li');
-                li.textContent = 'Нет забронированных мест.';
-                confirmedBookingsList.appendChild(li);
-                return;
-            }
-            confirmedBookings.forEach(booking => {
-                const li = document.createElement('li');
-                li.textContent = `Сеанс: ${booking.movie} - ${booking.date} ${booking.time}, Место: ${booking.row}${booking.col}, Контакт: ${booking.contact}, Кол-во: ${booking.peopleCount}`;
-                confirmedBookingsList.appendChild(li);
+        async function fetchMovies() {
+            const response = await fetch('/.netlify/functions/api/movies');
+            const movies = await response.json();
+            const movieSelect = document.getElementById('movieSelect');
+            const sessionSelect = document.getElementById('sessionSelect');
+            movieSelect.innerHTML = '<option value="">Выберите фильм</option>';
+            sessionSelect.innerHTML = '<option value="">Выберите сеанс</option>';
+            movies.forEach(movie => {
+                movieSelect.innerHTML += `<option value="${movie.id}">${movie.title}</option>`;
             });
         }
 
-        async function renderSessions() {
-            const sessionsList = document.getElementById('sessions-list');
-            const archiveList = document.getElementById('archive-list');
-            sessionsList.innerHTML = '';
-            archiveList.innerHTML = '';
-            const sessions = await fetchSessions();
-            if (sessions.length === 0) {
-                const li = document.createElement('li');
-                li.textContent = 'Сеансов не добавлено.';
-                sessionsList.appendChild(li);
-                return;
-            }
-            sessions.forEach(session => {
-                const li = document.createElement('li');
-                li.textContent = `${session.movie} - ${session.date} в ${session.time} (ID: ${session.id})`;
-                li.addEventListener('click', () => selectSession(session));
-                if (isSessionExpired(session)) {
-                    archiveList.appendChild(li);
-                } else {
-                    sessionsList.appendChild(li);
-                }
+        async function addMovie() {
+            const title = document.getElementById('movieTitle').value;
+            if (!title) return alert('Введите название фильма');
+            const response = await fetch('/.netlify/functions/api/movies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
             });
-        }
-
-        function selectSession(session) {
-            selectedSession = session;
-            document.querySelectorAll('#sessions-list li, #archive-list li').forEach(li => {
-                li.classList.toggle('selected', li.textContent.includes(session.id));
-            });
-            renderBookingsList();
-        }
-
-        async function renderBookingsList() {
-            const bookingsList = document.getElementById('bookings-list');
-            bookingsList.innerHTML = '';
-            if (!selectedSession) {
-                const li = document.createElement('li');
-                li.textContent = 'Выберите сеанс для просмотра бронирований.';
-                bookingsList.appendChild(li);
-                return;
+            const result = await response.json();
+            if (response.ok) {
+                alert('Фильм добавлен');
+                fetchMovies();
+            } else {
+                alert('Ошибка: ' + result.error);
             }
-            const bookings = await fetchBookings(selectedSession.movie, selectedSession.date, selectedSession.time);
-            if (bookings.length === 0) {
-                const li = document.createElement('li');
-                li.textContent = 'Бронирований нет.';
-                bookingsList.appendChild(li);
-                return;
-            }
-            bookings.forEach(booking => {
-                const li = document.createElement('li');
-                li.textContent = `Сеанс: ${selectedSession.movie} - ${selectedSession.date} ${selectedSession.time}, Место: ${booking.row}${booking.col}, Контакт: ${booking.contact}, Кол-во: ${booking.peopleCount}`;
-                bookingsList.appendChild(li);
-            });
         }
 
         async function addSession() {
-            const movie = document.getElementById('movie').value;
-            const date = document.getElementById('date').value;
-            const time = document.getElementById('time').value;
-
-            if (!movie || !date || !time) {
-                alert('Заполните все поля!');
-                return;
+            const movie_id = document.getElementById('movieSelect').value;
+            const date = document.getElementById('sessionDate').value;
+            const time = document.getElementById('sessionTime').value;
+            const available_seats = document.getElementById('availableSeats').value;
+            if (!movie_id || !date || !time || !available_seats) {
+                return alert('Заполните все поля');
             }
-
-            const response = await fetch('https://lvgkino.ru/.netlify/functions/sessions', {
+            const response = await fetch('/.netlify/functions/api/sessions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ movie, date, time })
+                body: JSON.stringify({ movie_id, date, time, available_seats })
             });
-
+            const result = await response.json();
             if (response.ok) {
-                alert('Сеанс успешно добавлен!');
-                document.getElementById('movie').value = '';
-                document.getElementById('date').value = '';
-                document.getElementById('time').value = '';
-                renderSessions();
-                renderConfirmedBookings();
+                alert('Сеанс добавлен');
+                loadSessions();
             } else {
-                const error = await response.json();
-                alert('Ошибка: ' + (error.message || 'Не удалось добавить сеанс'));
+                alert('Ошибка: ' + result.error);
             }
         }
 
-        async function refreshData() {
-            const prevSelectedSessionId = selectedSession ? selectedSession.id : null;
-            const sessions = await fetchSessions();
-            const hasChanged = sessions.some(s => !activeSessions.find(a => a.id === s.id) || !activeSessions.some(a => a.id === s.id));
-            if (hasChanged) {
-                renderSessions();
-                renderConfirmedBookings();
-                if (prevSelectedSessionId) {
-                    const newSelectedSession = sessions.find(s => s.id === prevSelectedSessionId);
-                    if (newSelectedSession) selectSession(newSelectedSession);
+        async function loadSessions() {
+            const response = await fetch('/.netlify/functions/api/sessions');
+            const sessions = await response.json();
+            const currentSessions = document.getElementById('currentSessions');
+            const pastSessions = document.getElementById('pastSessions');
+            const sessionSelect = document.getElementById('sessionSelect');
+            currentSessions.innerHTML = '';
+            pastSessions.innerHTML = '';
+            sessionSelect.innerHTML = '<option value="">Выберите сеанс</option>';
+            
+            sessions.forEach(session => {
+                const sessionDateTime = new Date(`${session.date}T${session.time}`);
+                const isPast = sessionDateTime < new Date();
+                const li = document.createElement('li');
+                li.textContent = `${session.movie_title} - ${session.date} ${session.time} (Мест: ${session.available_seats})`;
+                if (isPast) {
+                    pastSessions.appendChild(li);
+                } else {
+                    currentSessions.appendChild(li);
                 }
-            }
+                sessionSelect.innerHTML += `<option value="${session.id}">${session.movie_title} - ${session.date} ${session.time}</option>`;
+            });
         }
 
-        let activeSessions = [];
-        setInterval(refreshData, 30000);
+        async function loadBookings() {
+            const session_id = document.getElementById('sessionSelect').value;
+            if (!session_id) return;
+            const response = await fetch(`/api/bookings?session_id=${session_id}`);
+            const bookings = await response.json();
+            const bookingsList = document.getElementById('bookingsList');
+            bookingsList.innerHTML = '';
+            bookings.forEach(booking => {
+                const li = document.createElement('li');
+                li.textContent = `${booking.user_name} (${booking.user_email}) - Мест: ${booking.seats}, Статус оплаты: ${booking.payment_status}`;
+                bookingsList.appendChild(li);
+            });
+        }
 
         window.onload = () => {
-            renderSessions();
-            renderConfirmedBookings();
+            fetchMovies();
+            loadSessions();
         };
     </script>
 </body>
